@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Harvest design system tokens (see DESIGN.md) exposed to Tailwind v4. */
+@theme {
+  --color-flame: #fa5d00;
+  --color-flame-dark: #e15300;
+  --color-marigold: #fee3b5;
+  --color-parchment: #e3d6c5;
+  --color-ink: #1d1e1c;
+  --color-paper: #ffffff;
+  --color-cream: #fff8f1;
+  --color-mist: #d9d9d9;
+  --color-stone: #615f5c;
+  --color-driftwood: #8e8b87;
+  --color-bone: #c0bbb6;
+  --color-ash: #777571;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --radius-card: 20px;
+  --radius-input: 16px;
+
+  --shadow-soft: 0px 1px 4px 0px rgba(0, 0, 0, 0.08);
+  --shadow-glow: 6px 4px 24px 0px rgba(250, 166, 0, 0.25);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  letter-spacing: 0.015em;
+  -webkit-font-smoothing: antialiased;
+}
