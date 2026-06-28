@@ -7,15 +7,20 @@ Thiết kế theo `DESIGN.md` (hệ "Harvest" — nền kem, điểm nhấn cam)
 
 ## Yêu cầu
 - Node.js 18+ (đã test trên Node 24)
-- Backend Identity đang chạy ở `http://localhost:5001` (xem `../HRM_Assignment_BE`)
+- Các backend đang chạy (xem `../HRM_Assignment_BE`):
+  - Identity ở `http://localhost:5001`
+  - Horse ở `http://localhost:5003`
 
 ## Chạy
 ```bash
 npm install
 npm run dev          # http://localhost:5173
 ```
-Vite proxy chuyển mọi request `/api/*` sang `http://localhost:5001` (khai báo trong `vite.config.ts`),
-nên không cần cấu hình CORS ở backend. Nếu backend chạy cổng khác, sửa `target` trong `vite.config.ts`.
+Vite proxy định tuyến theo prefix (khai báo trong `vite.config.ts`), nên không cần cấu hình CORS:
+- `/api/horse/*`    → `http://localhost:5003`
+- `/api/identity/*` → `http://localhost:5001`
+
+Nếu backend chạy cổng khác, sửa `target` tương ứng trong `vite.config.ts`.
 
 ## Tài khoản mặc định (seed sẵn ở backend)
 - Admin: `admin@hrm.local` / `Admin@123`
@@ -39,3 +44,6 @@ src/
 | FR-02 Đăng nhập | `LoginPage` (JWT + refresh token) |
 | FR-04 Quản lý tài khoản | `admin/UsersPage` (xem/tìm, khóa/mở, xóa) |
 | FR-05 Phân quyền | `admin/UsersPage` → nút **Vai trò** |
+| FR-06 Đăng ký ngựa | `HorsesPage` → **+ Thêm ngựa** |
+| FR-07 Cập nhật / xóa ngựa | `HorsesPage` (Sửa, Cho giải nghệ, Xóa) |
+| FR-08 Giấy tờ ngựa | `HorsesPage` → **{n} giấy tờ** (modal) |

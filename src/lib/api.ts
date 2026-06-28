@@ -66,7 +66,7 @@ export const tokenStore = {
   },
 };
 
-const api = axios.create({ baseURL: '/api/identity' });
+const api = axios.create({ baseURL: '/api' });
 
 api.interceptors.request.use((config) => {
   const token = tokenStore.access;
@@ -137,11 +137,11 @@ export interface RegisterPayload {
 
 export const authApi = {
   async register(payload: RegisterPayload) {
-    const res = await api.post<ApiResponse<UserDto>>('/auth/register', payload);
+    const res = await api.post<ApiResponse<UserDto>>('/identity/auth/register', payload);
     return res.data.data!;
   },
   async login(email: string, password: string) {
-    const res = await api.post<ApiResponse<AuthResponse>>('/auth/login', { email, password });
+    const res = await api.post<ApiResponse<AuthResponse>>('/identity/auth/login', { email, password });
     return res.data.data!;
   },
 };
@@ -156,21 +156,103 @@ export interface GetUsersParams {
 
 export const usersApi = {
   async list(params: GetUsersParams) {
-    const res = await api.get<ApiResponse<PagedResult<UserDto>>>('/users', { params });
+    const res = await api.get<ApiResponse<PagedResult<UserDto>>>('/identity/users', { params });
     return res.data.data!;
   },
   async lock(id: string) {
-    await api.post(`/users/${id}/lock`);
+    await api.post(`/identity/users/${id}/lock`);
   },
   async unlock(id: string) {
-    await api.post(`/users/${id}/unlock`);
+    await api.post(`/identity/users/${id}/unlock`);
   },
   async remove(id: string) {
-    await api.delete(`/users/${id}`);
+    await api.delete(`/identity/users/${id}`);
   },
   async assignRoles(id: string, roles: RoleName[]) {
-    const res = await api.put<ApiResponse<UserDto>>(`/users/${id}/roles`, { roles });
+    const res = await api.put<ApiResponse<UserDto>>(`/identity/users/${id}/roles`, { roles });
     return res.data.data!;
+  },
+};
+
+// ---- Horse service (FR-06..08) ----
+export type HorseGender = 'Male' | 'Female' | 'Gelding';
+export type HorseStatus = 'Active' | 'Retired';
+export const HORSE_GENDERS: HorseGender[] = ['Male', 'Female', 'Gelding'];
+
+export interface HorseDocumentDto {
+  id: string;
+  docType: string;
+  fileUrl: string;
+  uploadedAtUtc: string;
+}
+
+export interface HorseDto {
+  id: string;
+  ownerUserId: string;
+  name: string;
+  gender: number;
+  genderName: HorseGender;
+  dateOfBirth: string | null;
+  breed: string | null;
+  color: string | null;
+  weightKg: number | null;
+  heightCm: number | null;
+  status: HorseStatus;
+  isActive: boolean;
+  createdAtUtc: string;
+  updatedAtUtc: string | null;
+  documents: HorseDocumentDto[];
+}
+
+export interface HorsePayload {
+  name: string;
+  gender: HorseGender;
+  dateOfBirth?: string | null;
+  breed?: string | null;
+  color?: string | null;
+  weightKg?: number | null;
+  heightCm?: number | null;
+}
+
+export interface GetHorsesParams {
+  search?: string;
+  status?: HorseStatus;
+  includeInactive?: boolean;
+  all?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export const horsesApi = {
+  async list(params: GetHorsesParams) {
+    const res = await api.get<ApiResponse<PagedResult<HorseDto>>>('/horse/horses', { params });
+    return res.data.data!;
+  },
+  async get(id: string) {
+    const res = await api.get<ApiResponse<HorseDto>>(`/horse/horses/${id}`);
+    return res.data.data!;
+  },
+  async create(payload: HorsePayload) {
+    const res = await api.post<ApiResponse<HorseDto>>('/horse/horses', payload);
+    return res.data.data!;
+  },
+  async update(id: string, payload: HorsePayload) {
+    const res = await api.put<ApiResponse<HorseDto>>(`/horse/horses/${id}`, payload);
+    return res.data.data!;
+  },
+  async changeStatus(id: string, status: HorseStatus) {
+    const res = await api.patch<ApiResponse<HorseDto>>(`/horse/horses/${id}/status`, { status });
+    return res.data.data!;
+  },
+  async remove(id: string) {
+    await api.delete(`/horse/horses/${id}`);
+  },
+  async addDocument(id: string, docType: string, fileUrl: string) {
+    const res = await api.post<ApiResponse<HorseDocumentDto>>(`/horse/horses/${id}/documents`, { docType, fileUrl });
+    return res.data.data!;
+  },
+  async removeDocument(id: string, documentId: string) {
+    await api.delete(`/horse/horses/${id}/documents/${documentId}`);
   },
 };
 

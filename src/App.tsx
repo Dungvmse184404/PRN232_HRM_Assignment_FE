@@ -5,6 +5,7 @@ import AuthLayout from './pages/AuthLayout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import HorsesPage from './pages/HorsesPage';
 import UsersPage from './pages/admin/UsersPage';
 import { AdminRoute, ProtectedRoute } from './routes/Guards';
 
@@ -27,6 +28,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/" element={<DashboardPage />} />
+              <Route path="/horses" element={<HorsesPage />} />
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UsersPage />} />
               </Route>
