@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import HorsesPage from './pages/HorsesPage';
 import UsersPage from './pages/admin/UsersPage';
+import AdminPredictionsPage from './pages/admin/AdminPredictionsPage';
 import PredictionsPage from './pages/PredictionsPage';
 import { AdminRoute, ProtectedRoute } from './routes/Guards';
 
@@ -33,6 +34,7 @@ export default function App() {
               <Route path="/predictions" element={<PredictionsPage />} />
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UsersPage />} />
+                <Route path="/admin/predictions" element={<AdminPredictionsPage />} />
               </Route>
             </Route>
           </Route>
