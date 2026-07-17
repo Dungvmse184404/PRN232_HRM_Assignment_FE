@@ -2,8 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   adminPredictionsApi,
   errorMessage,
+  horsesApi,
+  raceEntriesApi,
+  racesApi,
   type AdminPredictionDto,
   type PredictionConfigDto,
+  type RaceDto,
+  type RaceEntryDto,
   type RewardType,
 } from '../../lib/api';
 import { Alert, Badge, Button, Card, Input, Spinner } from '../../components/ui';
@@ -31,10 +36,14 @@ export default function AdminPredictionsPage() {
   const [gradeHorseId, setGradeHorseId] = useState('');
   const [grading, setGrading] = useState(false);
   const [gradeResult, setGradeResult] = useState<GradeResult | null>(null);
+  const [gradeEntries, setGradeEntries] = useState<RaceEntryDto[]>([]);
+  const [gradeEntriesLoading, setGradeEntriesLoading] = useState(false);
 
   // ---- Data state ----
   const [configs, setConfigs] = useState<PredictionConfigDto[]>([]);
   const [predictions, setPredictions] = useState<AdminPredictionDto[]>([]);
+  const [races, setRaces] = useState<RaceDto[]>([]);
+  const [horseNameMap, setHorseNameMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -56,9 +65,55 @@ export default function AdminPredictionsPage() {
     }
   }, []);
 
+  const loadOptions = useCallback(async () => {
+    try {
+      const raceResult = await racesApi.list({ pageNumber: 1, pageSize: 100 });
+      setRaces(raceResult.items);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }, []);
+
+  const loadHorseNames = useCallback(async (raceEntries: RaceEntryDto[]) => {
+    const uniqueHorseIds = Array.from(new Set(raceEntries.map((entry) => entry.horseId)));
+    const results = await Promise.all(
+      uniqueHorseIds.map(async (id) => {
+        try {
+          const horse = await horsesApi.get(id);
+          return [id, horse.name] as const;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const newMap: Record<string, string> = {};
+    for (const entry of results) {
+      if (entry) newMap[entry[0]] = entry[1];
+    }
+    setHorseNameMap((prev) => ({ ...prev, ...newMap }));
+  }, []);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadOptions();
+  }, [load, loadOptions]);
+
+  async function handleGradeRaceChange(newRaceId: string) {
+    setGradeRaceId(newRaceId);
+    setGradeHorseId('');
+    setGradeEntries([]);
+    if (!newRaceId) return;
+    setGradeEntriesLoading(true);
+    try {
+      const result = await raceEntriesApi.list({ raceId: newRaceId, pageNumber: 1, pageSize: 100 });
+      setGradeEntries(result.items);
+      await loadHorseNames(result.items);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setGradeEntriesLoading(false);
+    }
+  }
 
   // ---- Create config ----
   async function handleCreateConfig(e: React.FormEvent) {
@@ -159,12 +214,19 @@ export default function AdminPredictionsPage() {
         <form onSubmit={handleCreateConfig} className="flex flex-col gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-ash">Race ID</span>
-              <Input
+              <span className="text-xs font-medium text-ash">Cuộc đua</span>
+              <select
                 value={cfgRaceId}
                 onChange={(e) => setCfgRaceId(e.target.value)}
-                placeholder="vd: 09721800-95aa-4e11-9658-1b2142c28eda"
-              />
+                className={selectClass}
+              >
+                <option value="">-- Chọn cuộc đua --</option>
+                {races.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-ash">Rules</span>
@@ -272,22 +334,42 @@ export default function AdminPredictionsPage() {
         <h2 className="mb-4 text-lg font-semibold">Cham ket qua du doan</h2>
         <form onSubmit={handleGrade} className="flex flex-wrap items-end gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
-            <span className="text-xs font-medium text-ash">Race ID</span>
-            <Input
+            <span className="text-xs font-medium text-ash">Cuộc đua</span>
+            <select
               value={gradeRaceId}
-              onChange={(e) => setGradeRaceId(e.target.value)}
-              placeholder="vd: 09721800-95aa-4e11-9658-1b2142c28eda"
-            />
+              onChange={(e) => void handleGradeRaceChange(e.target.value)}
+              className={selectClass}
+            >
+              <option value="">-- Chọn cuộc đua --</option>
+              {races.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex flex-1 flex-col gap-1.5">
-            <span className="text-xs font-medium text-ash">Winning Horse ID</span>
-            <Input
+            <span className="text-xs font-medium text-ash">Ngựa thắng</span>
+            <select
               value={gradeHorseId}
               onChange={(e) => setGradeHorseId(e.target.value)}
-              placeholder="vd: 6e4a6d2f-f5c3-4846-9724-87480aed4cd4"
-            />
+              className={selectClass}
+              disabled={!gradeRaceId || gradeEntriesLoading}
+            >
+              <option value="">
+                {gradeEntriesLoading ? 'Đang tải...' : '-- Chọn ngựa --'}
+              </option>
+              {gradeEntries.map((entry) => {
+                const name = horseNameMap[entry.horseId] ?? `Horse ${entry.horseId.slice(0, 8)}`;
+                return (
+                  <option key={entry.id} value={entry.horseId}>
+                    {name}
+                  </option>
+                );
+              })}
+            </select>
           </div>
-          <Button type="submit" loading={grading}>
+          <Button type="submit" loading={grading} disabled={!gradeRaceId || !gradeHorseId}>
             Cham ket qua
           </Button>
         </form>

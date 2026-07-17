@@ -356,6 +356,78 @@ export const jockeyPerformanceApi = {
   },
 };
 
+// ---- Racing service: Races & Entries ----
+export interface RaceDto {
+  id: string;
+  tournamentId: string;
+  tournamentName: string;
+  trackId: string;
+  trackName: string;
+  name: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  distanceM: number;
+  maxHorses: number;
+  entryCount: number;
+  registrationDeadline: string | null;
+  status: number;
+  statusName: string;
+  createdAtUtc: string;
+}
+
+export interface RaceEntryDto {
+  id: string;
+  raceId: string;
+  raceName: string;
+  horseId: string;
+  ownerUserId: string;
+  jockeyId: string | null;
+  laneNo: number | null;
+  status: number;
+  statusName: string;
+  isActive: boolean;
+  registeredAtUtc: string;
+  confirmedAtUtc: string | null;
+}
+
+export const racesApi = {
+  async list(params?: {
+    tournamentId?: string;
+    search?: string;
+    status?: number;
+    pageNumber?: number;
+    pageSize?: number;
+  }) {
+    const res = await api.get<ApiResponse<PagedResult<RaceDto>>>('/racing/races', {
+      params: {
+        pageNumber: 1,
+        pageSize: 100,
+        ...params,
+      },
+    });
+    return res.data.data!;
+  },
+};
+
+export const raceEntriesApi = {
+  async list(params?: {
+    raceId?: string;
+    horseId?: string;
+    status?: number;
+    pageNumber?: number;
+    pageSize?: number;
+  }) {
+    const res = await api.get<ApiResponse<PagedResult<RaceEntryDto>>>('/racing/entries', {
+      params: {
+        pageNumber: 1,
+        pageSize: 100,
+        ...params,
+      },
+    });
+    return res.data.data!;
+  },
+};
+
 // ---- Prediction service (FR-33..36) ----
 export type RewardType = 'Points' | 'Voucher' | 'Cash';
 export type PredictionStatus = 'Submitted' | 'Correct' | 'Wrong';

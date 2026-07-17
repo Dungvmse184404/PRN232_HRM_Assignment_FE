@@ -2,11 +2,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import {
   errorMessage,
+  horsesApi,
   predictionsApi,
+  raceEntriesApi,
+  racesApi,
   type MyPredictionDto,
   type PredictionRewardDto,
+  type RaceDto,
+  type RaceEntryDto,
 } from '../lib/api';
-import { Alert, Badge, Button, Card, Input, Spinner } from '../components/ui';
+import { Alert, Badge, Button, Card, Spinner } from '../components/ui';
+
+const selectClass = 'rounded-[var(--radius-input)] border border-bone bg-paper px-3 py-2.5 text-sm outline-none focus:border-flame';
 
 export default function PredictionsPage() {
   const { user } = useAuth();
@@ -16,6 +23,12 @@ export default function PredictionsPage() {
   const [raceId, setRaceId] = useState('');
   const [horseId, setHorseId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // ---- Race/Horse option data ----
+  const [races, setRaces] = useState<RaceDto[]>([]);
+  const [horseNameMap, setHorseNameMap] = useState<Record<string, string>>({});
+  const [entries, setEntries] = useState<RaceEntryDto[]>([]);
+  const [entriesLoading, setEntriesLoading] = useState(false);
 
   // ---- Data state ----
   const [predictions, setPredictions] = useState<MyPredictionDto[]>([]);
@@ -42,24 +55,73 @@ export default function PredictionsPage() {
     }
   }, []);
 
+  const loadOptions = useCallback(async () => {
+    try {
+      const raceResult = await racesApi.list({ pageNumber: 1, pageSize: 100 });
+      setRaces(raceResult.items);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }, []);
+
+  const loadHorseNames = useCallback(async (raceEntries: RaceEntryDto[]) => {
+    const uniqueHorseIds = Array.from(new Set(raceEntries.map((entry) => entry.horseId)));
+    const results = await Promise.all(
+      uniqueHorseIds.map(async (id) => {
+        try {
+          const horse = await horsesApi.get(id);
+          return [id, horse.name] as const;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const newMap: Record<string, string> = {};
+    for (const entry of results) {
+      if (entry) newMap[entry[0]] = entry[1];
+    }
+    setHorseNameMap((prev) => ({ ...prev, ...newMap }));
+  }, []);
+
   useEffect(() => {
-    if (isSpectator) void load();
-  }, [isSpectator, load]);
+    if (isSpectator) {
+      void load();
+      void loadOptions();
+    }
+  }, [isSpectator, load, loadOptions]);
+
+  async function handleRaceChange(newRaceId: string) {
+    setRaceId(newRaceId);
+    setHorseId('');
+    setEntries([]);
+    if (!newRaceId) return;
+    setEntriesLoading(true);
+    try {
+      const result = await raceEntriesApi.list({ raceId: newRaceId, pageNumber: 1, pageSize: 100 });
+      setEntries(result.items);
+      await loadHorseNames(result.items);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setEntriesLoading(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!raceId.trim() || !horseId.trim()) return;
+    if (!raceId || !horseId) return;
     setSubmitting(true);
     setError(null);
     setSuccess(null);
     try {
       await predictionsApi.submit({
-        raceId: raceId.trim(),
-        predictedWinnerHorseId: horseId.trim(),
+        raceId,
+        predictedWinnerHorseId: horseId,
       });
       setSuccess('Gửi dự đoán thành công!');
       setRaceId('');
       setHorseId('');
+      setEntries([]);
       await load();
     } catch (err) {
       setError(errorMessage(err));
@@ -117,22 +179,42 @@ export default function PredictionsPage() {
         <h2 className="mb-4 text-lg font-semibold">Gửi dự đoán mới</h2>
         <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
-            <span className="text-xs font-medium text-ash">Race ID</span>
-            <Input
+            <span className="text-xs font-medium text-ash">Cuộc đua</span>
+            <select
               value={raceId}
-              onChange={(e) => setRaceId(e.target.value)}
-              placeholder="vd: 09721800-95aa-4e11-9658-1b2142c28eda"
-            />
+              onChange={(e) => void handleRaceChange(e.target.value)}
+              className={selectClass}
+            >
+              <option value="">-- Chọn cuộc đua --</option>
+              {races.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex flex-1 flex-col gap-1.5">
-            <span className="text-xs font-medium text-ash">Horse ID (dự đoán thắng)</span>
-            <Input
+            <span className="text-xs font-medium text-ash">Ngựa (dự đoán thắng)</span>
+            <select
               value={horseId}
               onChange={(e) => setHorseId(e.target.value)}
-              placeholder="vd: 6e4a6d2f-f5c3-4846-9724-87480aed4cd4"
-            />
+              className={selectClass}
+              disabled={!raceId || entriesLoading}
+            >
+              <option value="">
+                {entriesLoading ? 'Đang tải...' : '-- Chọn ngựa --'}
+              </option>
+              {entries.map((entry) => {
+                const name = horseNameMap[entry.horseId] ?? `Horse ${entry.horseId.slice(0, 8)}`;
+                return (
+                  <option key={entry.id} value={entry.horseId}>
+                    {name}
+                  </option>
+                );
+              })}
+            </select>
           </div>
-          <Button type="submit" loading={submitting}>
+          <Button type="submit" loading={submitting} disabled={!raceId || !horseId}>
             Gửi dự đoán
           </Button>
         </form>
