@@ -130,7 +130,7 @@ export default function AdminPredictionsPage() {
         rewardValue: cfgRewardValue ? Number(cfgRewardValue) : null,
         predictionDeadline: cfgDeadline || null,
       });
-      setSuccess('Tao cau hinh thanh cong!');
+      setSuccess('Tạo cấu hình thành công!');
       setCfgRaceId('');
       setCfgRules('');
       setCfgRewardType('Points');
@@ -175,7 +175,7 @@ export default function AdminPredictionsPage() {
       // Handle both direct and ApiResponse-wrapped shapes
       const data = (result as { data?: GradeResult }).data ?? result;
       setGradeResult(data as GradeResult);
-      setSuccess('Cham ket qua thanh cong!');
+      setSuccess('Chấm kết quả thành công!');
       await load();
     } catch (err) {
       setError(errorMessage(err));
@@ -199,9 +199,9 @@ export default function AdminPredictionsPage() {
     <div className="flex flex-col gap-5">
       {/* ---- Header ---- */}
       <div>
-        <h1 className="text-3xl font-semibold">Quan ly du doan</h1>
+        <h1 className="text-3xl font-semibold">Quản lý dự đoán</h1>
         <p className="mt-1 text-stone">
-          Tao cau hinh, cham ket qua va xem danh sach du doan (FR-33..36 Admin).
+          Tạo cấu hình, chấm kết quả và xem danh sách dự đoán (FR-33..36 Admin).
         </p>
       </div>
 
@@ -210,7 +210,7 @@ export default function AdminPredictionsPage() {
 
       {/* ======== A. Create prediction config ======== */}
       <Card className="p-5">
-        <h2 className="mb-4 text-lg font-semibold">Tao cau hinh du doan</h2>
+        <h2 className="mb-4 text-lg font-semibold">Tạo cấu hình dự đoán</h2>
         <form onSubmit={handleCreateConfig} className="flex flex-col gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
@@ -233,7 +233,7 @@ export default function AdminPredictionsPage() {
               <Input
                 value={cfgRules}
                 onChange={(e) => setCfgRules(e.target.value)}
-                placeholder="vd: Chon ngua thang"
+                placeholder="vd: Chọn ngựa thắng"
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -268,7 +268,7 @@ export default function AdminPredictionsPage() {
           </div>
           <div className="pt-1">
             <Button type="submit" loading={cfgSaving}>
-              Luu cau hinh
+              Lưu cấu hình
             </Button>
           </div>
         </form>
@@ -276,11 +276,11 @@ export default function AdminPredictionsPage() {
 
       {/* ======== B. Configs table ======== */}
       <Card className="p-5">
-        <h2 className="mb-4 text-lg font-semibold">Danh sach cau hinh</h2>
+        <h2 className="mb-4 text-lg font-semibold">Danh sách cấu hình</h2>
         {loading ? (
           <div className="py-8 text-center text-stone"><Spinner /> Loading...</div>
         ) : configs.length === 0 ? (
-          <p className="py-8 text-center text-stone">Chua co cau hinh nao.</p>
+          <p className="py-8 text-center text-stone">Chưa có cấu hình nào.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -291,7 +291,7 @@ export default function AdminPredictionsPage() {
                   <th className="py-2 pr-4">Reward Type</th>
                   <th className="py-2 pr-4">Reward Value</th>
                   <th className="py-2 pr-4">Deadline</th>
-                  <th className="py-2 pr-4">Trang thai</th>
+                  <th className="py-2 pr-4">Trạng thái</th>
                   <th className="py-2">Action</th>
                 </tr>
               </thead>
@@ -331,7 +331,7 @@ export default function AdminPredictionsPage() {
 
       {/* ======== C. Grade race predictions ======== */}
       <Card className="p-5">
-        <h2 className="mb-4 text-lg font-semibold">Cham ket qua du doan</h2>
+        <h2 className="mb-4 text-lg font-semibold">Chấm kết quả dự đoán</h2>
         <form onSubmit={handleGrade} className="flex flex-wrap items-end gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
             <span className="text-xs font-medium text-ash">Cuộc đua</span>
@@ -370,13 +370,13 @@ export default function AdminPredictionsPage() {
             </select>
           </div>
           <Button type="submit" loading={grading} disabled={!gradeRaceId || !gradeHorseId}>
-            Cham ket qua
+            Chấm kết quả
           </Button>
         </form>
 
         {gradeResult && (
           <div className="mt-4 rounded-[var(--radius-input)] border border-parchment/60 bg-cream/40 p-4">
-            <h3 className="mb-2 text-sm font-semibold">Ket qua cham diem:</h3>
+            <h3 className="mb-2 text-sm font-semibold">Kết quả chấm điểm:</h3>
             <dl className="grid grid-cols-2 gap-y-1 text-sm sm:grid-cols-4">
               <dt className="text-ash">Total Predictions</dt>
               <dd className="font-medium text-ink">{gradeResult.totalPredictions}</dd>
@@ -393,11 +393,11 @@ export default function AdminPredictionsPage() {
 
       {/* ======== D. All predictions table ======== */}
       <Card className="p-5">
-        <h2 className="mb-4 text-lg font-semibold">Danh sach du doan</h2>
+        <h2 className="mb-4 text-lg font-semibold">Danh sách dự đoán</h2>
         {loading ? (
           <div className="py-8 text-center text-stone"><Spinner /> Loading...</div>
         ) : predictions.length === 0 ? (
-          <p className="py-8 text-center text-stone">Chua co du doan nao.</p>
+          <p className="py-8 text-center text-stone">Chưa có dự đoán nào.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -407,7 +407,7 @@ export default function AdminPredictionsPage() {
                   <th className="py-2 pr-4">Race ID</th>
                   <th className="py-2 pr-4">Spectator ID</th>
                   <th className="py-2 pr-4">Horse ID</th>
-                  <th className="py-2 pr-4">Trang thai</th>
+                  <th className="py-2 pr-4">Trạng thái</th>
                   <th className="py-2">Created At</th>
                 </tr>
               </thead>
