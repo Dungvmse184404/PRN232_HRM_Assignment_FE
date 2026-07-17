@@ -17,6 +17,7 @@ export default function AppLayout() {
           <nav className="flex items-center gap-1 text-sm">
             <TopLink to="/">Tổng quan</TopLink>
             <TopLink to="/horses">Ngựa của tôi</TopLink>
+            {user?.roles.includes('Spectator') && <TopLink to="/predictions">Dự đoán</TopLink>}
             {isAdmin && <TopLink to="/admin/users">Quản lý tài khoản</TopLink>}
           </nav>
 

@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import HorsesPage from './pages/HorsesPage';
 import UsersPage from './pages/admin/UsersPage';
+import PredictionsPage from './pages/PredictionsPage';
 import { AdminRoute, ProtectedRoute } from './routes/Guards';
 
 /** Sends already-logged-in users away from the auth pages. */
@@ -29,6 +30,7 @@ export default function App() {
             <Route element={<AppLayout />}>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/horses" element={<HorsesPage />} />
+              <Route path="/predictions" element={<PredictionsPage />} />
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UsersPage />} />
               </Route>
