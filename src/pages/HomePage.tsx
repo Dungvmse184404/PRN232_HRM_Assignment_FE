@@ -1,6 +1,16 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import CommandCenterSection from './home/CommandCenterSection';
+import TrackPulseSection from './home/TrackPulseSection';
+import LiveSeasonSection from './home/LiveSeasonSection';
+import StandingsSection from './home/StandingsSection';
+import RolesSection from './home/RolesSection';
+import ClosingCtaSection from './home/ClosingCtaSection';
+import SiteFooter from './home/SiteFooter';
+import HomeNavDrawer from './home/HomeNavDrawer';
+import HomeSearchDialog from './home/HomeSearchDialog';
+import { scrollToAnchor, type AnchorId } from './home/navigation';
 
 /** Cinematic equestrian editorial hero — dark obsidian/crimson/gold theme, scoped to this file only. */
 const THEME_VARS: CSSProperties = {
@@ -31,12 +41,25 @@ const RANKINGS = [
 
 const FINAL_ROUND_MS = (2 * 3600 + 14 * 60 + 30) * 1000;
 
+const VALID_MOUNT_ANCHORS: AnchorId[] = ['mua-giai', 'ket-qua'];
+
 export default function HomePage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isSpectator = user?.roles.includes('Spectator') ?? false;
   const primaryHref = isAuthenticated ? '/dashboard' : '/login';
   const remaining = useCountdown(FINAL_ROUND_MS);
+  const location = useLocation();
+
+  // Deep-link support: /#mua-giai or /#ket-qua scrolls to that section once, on first mount only.
+  useEffect(() => {
+    const hash = location.hash.replace('#', '') as AnchorId;
+    if (!VALID_MOUNT_ANCHORS.includes(hash)) return;
+    const frame = requestAnimationFrame(() => scrollToAnchor(hash));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   return (
+    <>
     <div style={THEME_VARS} className="relative isolate min-h-screen overflow-hidden bg-[var(--obsidian)]">
       <style>{`
         @keyframes homeReveal {
@@ -87,7 +110,7 @@ export default function HomePage() {
       />
 
       <div className="relative z-10 flex min-h-screen flex-col">
-        <SiteHeader isAuthenticated={isAuthenticated} />
+        <SiteHeader isAuthenticated={isAuthenticated} isSpectator={isSpectator} />
 
         <main className="flex flex-1 items-center px-6 py-8 sm:py-10">
           <div className="mx-auto grid w-full max-w-[1280px] gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-16">
@@ -150,15 +173,96 @@ export default function HomePage() {
         <StatRail />
       </div>
     </div>
+
+    <CommandCenterSection />
+    <TrackPulseSection />
+    <LiveSeasonSection />
+    <StandingsSection />
+    <RolesSection />
+    <ClosingCtaSection />
+    <SiteFooter />
+    </>
   );
 }
 
-function SiteHeader({ isAuthenticated }: { isAuthenticated: boolean }) {
+function SiteHeader({ isAuthenticated, isSpectator }: { isAuthenticated: boolean; isSpectator: boolean }) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
+
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
+    hamburgerRef.current?.focus();
+  }, []);
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    searchTriggerRef.current?.focus();
+  }, []);
+
+  const openDrawer = useCallback(() => {
+    setSearchOpen(false);
+    setDrawerOpen(true);
+  }, []);
+
+  const openSearch = useCallback(() => {
+    setDrawerOpen(false);
+    setSearchOpen(true);
+  }, []);
+
+  // Centralized body scroll lock — single source of truth for both overlays, so closing
+  // one never clobbers a lock the other still needs.
+  useEffect(() => {
+    if (!drawerOpen && !searchOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [drawerOpen, searchOpen]);
+
+  // Ctrl+K / Cmd+K — attached once at header scope (not inside the search-only component,
+  // which only mounts while open) so the shortcut works from anywhere on the page.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const isCombo = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k';
+      if (!isCombo) return;
+      event.preventDefault();
+      setDrawerOpen(false);
+      setSearchOpen(true);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   return (
     <header className="relative z-10 mx-auto flex w-full max-w-[1280px] items-center justify-between gap-6 px-6 py-6">
       <div className="flex flex-1 items-center gap-4 text-[var(--parchment)]/75">
-        <HamburgerIcon />
-        <SearchIcon />
+        <button
+          ref={hamburgerRef}
+          type="button"
+          onClick={openDrawer}
+          aria-label="Mở menu điều hướng"
+          aria-haspopup="dialog"
+          aria-expanded={drawerOpen}
+          aria-controls="home-nav-drawer"
+          className="-m-1 flex items-center justify-center bg-transparent border-0 p-1 text-current transition hover:text-[var(--parchment)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]"
+        >
+          <HamburgerIcon />
+        </button>
+        <button
+          ref={searchTriggerRef}
+          type="button"
+          onClick={openSearch}
+          aria-label="Tìm kiếm điều hướng, Ctrl K"
+          aria-haspopup="dialog"
+          aria-expanded={searchOpen}
+          aria-controls="home-search-dialog"
+          className="-m-1 flex items-center justify-center bg-transparent border-0 p-1 text-current transition hover:text-[var(--parchment)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]"
+        >
+          <SearchIcon />
+        </button>
       </div>
 
       <Link to="/" className="shrink-0" aria-label="HRM — Trang chủ">
@@ -198,6 +302,9 @@ function SiteHeader({ isAuthenticated }: { isAuthenticated: boolean }) {
           </>
         )}
       </div>
+
+      <HomeNavDrawer open={drawerOpen} onClose={closeDrawer} isAuthenticated={isAuthenticated} isSpectator={isSpectator} />
+      <HomeSearchDialog open={searchOpen} onClose={closeSearch} isAuthenticated={isAuthenticated} isSpectator={isSpectator} />
     </header>
   );
 }
