@@ -9,13 +9,13 @@ export default function AppLayout() {
     <div className="min-h-full">
       <header className="sticky top-0 z-10 border-b border-parchment/60 bg-cream/85 backdrop-blur">
         <div className="mx-auto flex max-w-[1200px] items-center gap-6 px-6 py-3.5">
-          <Link to="/" className="flex items-center gap-2 text-lg font-bold text-flame">
+          <Link to="/dashboard" className="flex items-center gap-2 text-lg font-bold text-flame">
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-flame text-paper">🏇</span>
             HRM
           </Link>
 
           <nav className="flex items-center gap-1 text-sm">
-            <TopLink to="/">Tổng quan</TopLink>
+            <TopLink to="/dashboard">Tổng quan</TopLink>
             <TopLink to="/horses">Ngựa của tôi</TopLink>
             <TopLink to="/racing-results">Kết quả cuộc đua</TopLink>
             {user?.roles.includes('Spectator') && <TopLink to="/predictions">Dự đoán</TopLink>}
