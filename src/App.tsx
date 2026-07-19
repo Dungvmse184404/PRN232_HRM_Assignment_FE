@@ -8,6 +8,12 @@ import DashboardPage from './pages/DashboardPage';
 import HorsesPage from './pages/HorsesPage';
 import UsersPage from './pages/admin/UsersPage';
 import { AdminRoute, ProtectedRoute } from './routes/Guards';
+import AssignRefereePage from './pages/racing/AssignRefereePage';
+import HorseInspectionPage from './pages/racing/HorseInspectionPage';
+import MonitorRacePage from './pages/racing/MonitorRacePage';
+import ViolationPage from './pages/racing/ViolationPage';
+import ConfirmResultPage from './pages/racing/ConfirmResultPage';
+import RaceReportPage from './pages/racing/RaceReportPage';
 
 /** Sends already-logged-in users away from the auth pages. */
 function GuestOnly({ children }: { children: React.ReactNode }) {
@@ -29,6 +35,12 @@ export default function App() {
             <Route element={<AppLayout />}>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/horses" element={<HorsesPage />} />
+              <Route path="/racing/assign-referee" element={<AssignRefereePage />} />
+              <Route path="/racing/inspection" element={<HorseInspectionPage />} />
+              <Route path="/racing/monitor" element={<MonitorRacePage />} />
+              <Route path="/racing/violations" element={<ViolationPage />} />
+              <Route path="/racing/confirm-result" element={<ConfirmResultPage />} />
+              <Route path="/racing/report" element={<RaceReportPage />} />
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UsersPage />} />
               </Route>

@@ -17,6 +17,16 @@ export default function AppLayout() {
           <nav className="flex items-center gap-1 text-sm">
             <TopLink to="/">Tổng quan</TopLink>
             <TopLink to="/horses">Ngựa của tôi</TopLink>
+            <TopLink to="/racing/monitor">Giám sát đua</TopLink>
+            {(isAdmin || user?.roles.includes('RaceReferee')) && (
+              <>
+                <TopLink to="/racing/inspection">Kiểm tra ngựa</TopLink>
+                <TopLink to="/racing/violations">Vi phạm</TopLink>
+                <TopLink to="/racing/confirm-result">Kết quả</TopLink>
+                <TopLink to="/racing/report">Biên bản</TopLink>
+              </>
+            )}
+            {isAdmin && <TopLink to="/racing/assign-referee">Phân công TT</TopLink>}
             {isAdmin && <TopLink to="/admin/users">Quản lý tài khoản</TopLink>}
           </nav>
 
