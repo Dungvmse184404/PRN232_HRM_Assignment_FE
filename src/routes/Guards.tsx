@@ -17,3 +17,17 @@ export function AdminRoute() {
   if (!isAdmin) return <Navigate to="/" replace />;
   return <Outlet />;
 }
+
+/** Requires the HorseOwner role. */
+export function HorseOwnerRoute() {
+  const { user } = useAuth();
+  if (!user?.roles.includes('HorseOwner')) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
+/** Requires the Jockey role. */
+export function JockeyRoute() {
+  const { user } = useAuth();
+  if (!user?.roles.includes('Jockey')) return <Navigate to="/" replace />;
+  return <Outlet />;
+}

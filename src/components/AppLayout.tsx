@@ -16,7 +16,23 @@ export default function AppLayout() {
 
           <nav className="flex items-center gap-1 text-sm">
             <TopLink to="/">Tổng quan</TopLink>
-            <TopLink to="/horses">Ngựa của tôi</TopLink>
+            {(user?.roles.includes('HorseOwner') || isAdmin) && (
+              <TopLink to="/horses">Ngựa của tôi</TopLink>
+            )}
+            {/* HorseOwner: FR-16 + FR-17 + FR-20 */}
+            {user?.roles.includes('HorseOwner') && (
+              <>
+                <TopLink to="/jockey/send-invitation">Gửi lời mời</TopLink>
+                <TopLink to="/jockey/manage-invitations">Quản lý lời mời</TopLink>
+              </>
+            )}
+            {/* Jockey: FR-18 + FR-19 + FR-21 */}
+            {user?.roles.includes('Jockey') && (
+              <>
+                <TopLink to="/jockey/my-invitations">Lời mời của tôi</TopLink>
+                <TopLink to="/jockey/my-races">Cuộc đua của tôi</TopLink>
+              </>
+            )}
             <TopLink to="/racing/monitor">Giám sát đua</TopLink>
             {(isAdmin || user?.roles.includes('RaceReferee')) && (
               <>
@@ -27,8 +43,10 @@ export default function AppLayout() {
               </>
             )}
             {isAdmin && <TopLink to="/racing/assign-referee">Phân công TT</TopLink>}
+            {isAdmin && <TopLink to="/admin/jockeys">Quản lý Jockey</TopLink>}
             {isAdmin && <TopLink to="/admin/users">Quản lý tài khoản</TopLink>}
           </nav>
+
 
           <div className="ml-auto flex items-center gap-4">
             <div className="hidden text-right sm:block">
@@ -53,8 +71,7 @@ function TopLink({ to, children }: { to: string; children: React.ReactNode }) {
       to={to}
       end={to === '/'}
       className={({ isActive }) =>
-        `rounded-full px-3 py-1.5 font-medium transition ${
-          isActive ? 'bg-marigold text-ink' : 'text-stone hover:text-ink'
+        `rounded-full px-3 py-1.5 font-medium transition ${isActive ? 'bg-marigold text-ink' : 'text-stone hover:text-ink'
         }`
       }
     >

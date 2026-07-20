@@ -449,4 +449,121 @@ export const racingApi = {
   },
 };
 
+// ---- Jockey service (FR-16 → FR-22) ----
+export type InvitationStatus = 'Pending' | 'Accepted' | 'Declined' | 'Cancelled' | 'Confirmed';
+export type JockeyStatus = 'Active' | 'Suspended' | 'Retired';
+
+export interface InvitationDto {
+  id: string;
+  raceId: string;
+  raceName: string;
+  horseId: string;
+  horseName: string | null;
+  jockeyId: string;
+  jockeyName: string | null;
+  message: string | null;
+  status: number;
+  statusName: InvitationStatus;
+  sentAtUtc: string;
+  respondedAtUtc: string | null;
+  confirmedAtUtc: string | null;
+}
+
+export interface AssignedRaceForJockeyDto {
+  invitationId: string;
+  raceId: string;
+  raceName: string;
+  scheduledStart: string;
+  horseId: string;
+  horseName: string | null;
+  horseBreed: string | null;
+  horseColor: string | null;
+  horseWeightKg: number | null;
+  horseHeightCm: number | null;
+  status: InvitationStatus;
+}
+
+export interface JockeyDto {
+  userId: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  status: number;
+  statusName: JockeyStatus;
+  totalRaces: number;
+  createdAtUtc: string;
+}
+
+export interface GetInvitationsParams {
+  horseId?: string;
+  status?: InvitationStatus;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface GetAllJockeysParams {
+  search?: string;
+  status?: JockeyStatus;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export const jockeyApi = {
+  // FR-16: Horse Owner gửi lời mời jockey
+  async sendInvitation(payload: {
+    raceId: string;
+    horseId: string;
+    jockeyId: string;
+    message?: string | null;
+  }): Promise<{ message: string }> {
+    const res = await api.post<ApiResponse<{ message: string }>>('/racing/jockeys/invitations', payload);
+    return res.data as unknown as { message: string };
+  },
+
+  // FR-17: Horse Owner xem danh sách lời mời đã gửi (theo ngựa)
+  async getHorseInvitations(params: GetInvitationsParams): Promise<PagedResult<InvitationDto>> {
+    const res = await api.get<ApiResponse<PagedResult<InvitationDto>>>('/racing/jockeys/invitations', { params });
+    return res.data.data!;
+  },
+
+  // FR-17: Horse Owner hủy lời mời
+  async cancelInvitation(id: string): Promise<void> {
+    await api.delete(`/racing/jockeys/invitations/${id}`);
+  },
+
+  // FR-18: Jockey xem lời mời của mình
+  async getMyInvitations(params: { status?: InvitationStatus; pageNumber?: number; pageSize?: number }): Promise<PagedResult<InvitationDto>> {
+    const res = await api.get<ApiResponse<PagedResult<InvitationDto>>>('/racing/jockeys/me/invitations', { params });
+    return res.data.data!;
+  },
+
+  // FR-19: Jockey Accept / Decline lời mời
+  async respondInvitation(id: string, response: 'Accepted' | 'Declined'): Promise<void> {
+    await api.post(`/racing/jockeys/invitations/${id}/respond`, { response });
+  },
+
+  // FR-20: Horse Owner xác nhận jockey tham gia cuộc đua
+  async confirmJockey(id: string): Promise<void> {
+    await api.post(`/racing/jockeys/invitations/${id}/confirm`, {});
+  },
+
+  // FR-21: Jockey xem cuộc đua được phân công
+  async getMyAssignedRaces(params: { pageNumber?: number; pageSize?: number }): Promise<PagedResult<AssignedRaceForJockeyDto>> {
+    const res = await api.get<ApiResponse<PagedResult<AssignedRaceForJockeyDto>>>('/racing/jockeys/me/races', { params });
+    return res.data.data!;
+  },
+
+  // FR-22: Admin xem toàn bộ jockey
+  async getAllJockeys(params: GetAllJockeysParams): Promise<PagedResult<JockeyDto>> {
+    const res = await api.get<ApiResponse<PagedResult<JockeyDto>>>('/racing/jockeys', { params });
+    return res.data.data!;
+  },
+
+  // FR-22: Admin cập nhật trạng thái jockey
+  async updateJockeyStatus(id: string, status: JockeyStatus): Promise<void> {
+    await api.put(`/racing/jockeys/${id}/status`, { status });
+  },
+};
+
 export default api;
+
