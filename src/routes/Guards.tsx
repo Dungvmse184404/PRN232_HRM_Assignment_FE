@@ -14,7 +14,7 @@ export function ProtectedRoute() {
 /** Requires the Admin role; sends non-admins back to the dashboard. */
 export function AdminRoute() {
   const { isAdmin } = useAuth();
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }
 

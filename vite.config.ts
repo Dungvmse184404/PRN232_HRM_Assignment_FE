@@ -15,6 +15,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // Identity Service - port 5001
+      '/api/identity': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
+
+      // Horse Service - port 5003
       '/api/racing': {
         target: 'http://localhost:5002',
         changeOrigin: true,
@@ -31,8 +38,28 @@ export default defineConfig({
         target: 'http://localhost:5003',
         changeOrigin: true,
       },
-      '/api/identity': {
-        target: 'http://localhost:5001',
+
+      // Racing Service - port 5002
+      '/api/racing': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+      },
+      '/api/results': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+      },
+      '/api/owners': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+      },
+      '/api/officiating': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+      },
+
+      // Prediction Service - port 5004
+      '/api/predictions': {
+        target: 'http://localhost:5004',
         changeOrigin: true,
       },
     },

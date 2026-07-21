@@ -256,6 +256,107 @@ export const horsesApi = {
   },
 };
 
+// ---- Racing service: Results / standings / performance (FR-29..32) ----
+export interface RaceResultItemDto {
+  rank: number;
+  horseId: string;
+  jockeyId: string | null;
+  finishTimeMs: number | null;
+  points: number;
+  prizeAmount: number | null;
+}
+
+export interface RaceResultsSummaryDto {
+  raceId: string;
+  tournamentId: string | null;
+  resultStatus: number;
+  resultStatusName: string;
+  isOfficial: boolean;
+  publishedAtUtc: string | null;
+  results: RaceResultItemDto[];
+}
+
+export interface TournamentStandingRowDto {
+  rank: number;
+  horseId: string;
+  totalPoints: number;
+  wins: number;
+  top3Count: number;
+  totalPrize: number;
+}
+
+export interface RaceLiveStatusDto {
+  raceId: string;
+  raceStatus: number;
+  raceStatusName: string;
+  hasUnofficialResults: boolean;
+  violationCount: number;
+  hasRaceReport: boolean;
+}
+
+export interface HorseResultsDto {
+  horseId: string;
+  totalRaces: number;
+  wins: number;
+  top3Count: number;
+  totalPoints: number;
+  totalPrize: number;
+  results: RaceResultItemDto[];
+}
+
+export interface JockeyPerformanceDto {
+  jockeyId: string;
+  totalRaces: number;
+  wins: number;
+  top3Count: number;
+  totalPoints: number;
+  averageRank: number;
+  winRate: number;
+  totalPrize: number;
+}
+
+export interface PublishRaceResultsPayload {
+  note?: string | null;
+  prizes: {
+    rank: number;
+    amount: number;
+  }[];
+}
+
+export const racingResultsApi = {
+  async getRaceResults(raceId: string) {
+    const res = await api.get<ApiResponse<RaceResultsSummaryDto>>(`/racing/races/${raceId}/results`);
+    return res.data.data!;
+  },
+  async getTournamentStandings(tournamentId: string) {
+    const res = await api.get<ApiResponse<TournamentStandingRowDto[]>>(`/racing/tournaments/${tournamentId}/standings`);
+    return res.data.data!;
+  },
+  async getRaceLiveStatus(raceId: string) {
+    const res = await api.get<ApiResponse<RaceLiveStatusDto>>(`/racing/races/${raceId}/live-status`);
+    return res.data.data!;
+  },
+  async publishRaceResults(raceId: string, payload: PublishRaceResultsPayload) {
+    const res = await api.post<ApiResponse<null>>(`/results/${raceId}/publish`, payload);
+    return res.data;
+  },
+};
+
+export const ownerResultsApi = {
+  async getHorseResults(horseId: string) {
+    const res = await api.get<ApiResponse<HorseResultsDto>>(`/owners/me/horses/${horseId}/results`);
+    return res.data.data!;
+  },
+};
+
+export const jockeyPerformanceApi = {
+  async getMyPerformance() {
+    const res = await api.get<ApiResponse<JockeyPerformanceDto>>('/racing/jockeys/me/performance');
+    return res.data.data!;
+  },
+};
+
+// ---- Racing service: Races & Entries ----
 // ---- Racing service (FR-23..28) ----
 // Enums mirrored from HRM.Assignment.Racing.Domain.Enums (stored as short, serialised as string via JsonStringEnumConverter)
 export type RaceStatus = 'Scheduled' | 'RegistrationOpen' | 'RegistrationClosed' | 'Ongoing' | 'Finished' | 'Cancelled';
