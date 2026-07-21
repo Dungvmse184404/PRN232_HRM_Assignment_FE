@@ -22,7 +22,6 @@ import ManageInvitationsPage from './pages/jockey/ManageInvitationsPage';
 import MyInvitationsPage from './pages/jockey/MyInvitationsPage';
 import MyAssignedRacesPage from './pages/jockey/MyAssignedRacesPage';
 
-/** Sends already-logged-in users away from the auth pages. */
 function GuestOnly({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>;
@@ -42,6 +41,23 @@ export default function App() {
 
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
+              <Route path="/" element={<DashboardPage />} />
+
+              {/* Racing — public views */}
+              <Route path="/tournaments" element={<TournamentsPage />} />
+              <Route path="/tournaments/:id" element={<TournamentDetailPage />} />
+              <Route path="/races/:id" element={<RaceDetailPage />} />
+
+              {/* Racing — Horse Owner */}
+              <Route path="/my-horses/schedule" element={<HorseSchedulePage />} />
+
+              {/* Racing — Admin */}
+              <Route element={<AdminRoute />}>
+                <Route path="/admin/users" element={<UsersPage />} />
+                <Route path="/admin/tournaments/new" element={<AdminTournamentPage />} />
+                <Route path="/admin/tournaments/:id/edit" element={<AdminTournamentPage />} />
+                <Route path="/admin/races/new" element={<AdminRacePage />} />
+                <Route path="/admin/races/:id/edit" element={<AdminRacePage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/horses" element={<HorsesPage />} />
               <Route path="/racing/assign-referee" element={<AssignRefereePage />} />

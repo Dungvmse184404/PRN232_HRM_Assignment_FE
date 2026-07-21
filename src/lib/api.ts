@@ -668,3 +668,127 @@ export const jockeyApi = {
 
 export default api;
 
+// ---- Racing service types & API ----
+export interface TournamentDto {
+  id: string;
+  name: string;
+  description: string | null;
+  location: string | null;
+  startDate: string;
+  endDate: string;
+  status: number;
+  statusName: string;
+  totalPrizePool: number | null;
+  createdBy: string;
+  createdAtUtc: string;
+  updatedAtUtc: string | null;
+}
+
+export interface RaceRoundDto {
+  id: string;
+  raceId: string;
+  roundNumber: number;
+  name: string | null;
+  scheduledTime: string | null;
+  status: number;
+  statusName: string;
+}
+
+export interface RaceDto {
+  id: string;
+  tournamentId: string;
+  tournamentName: string;
+  trackId: string;
+  trackName: string;
+  name: string;
+  scheduledStart: string;
+  scheduledEnd: string | null;
+  distanceM: number;
+  maxHorses: number;
+  entryCount: number;
+  registrationDeadline: string | null;
+  status: number;
+  statusName: string;
+  createdAtUtc: string;
+  rounds: RaceRoundDto[];
+}
+
+export interface RaceEntryDto {
+  id: string;
+  raceId: string;
+  raceName: string;
+  horseId: string;
+  ownerUserId: string;
+  jockeyId: string | null;
+  laneNo: number | null;
+  status: number;
+  statusName: string;
+  isActive: boolean;
+  registeredAtUtc: string;
+  confirmedAtUtc: string | null;
+}
+
+const racingApiClient = axios.create({ baseURL: '/api/racing' });
+racingApiClient.interceptors.request.use((config) => {
+  const token = tokenStore.access;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export const tournamentsApi = {
+  async list(params?: { search?: string; status?: number; pageNumber?: number; pageSize?: number }) {
+    const res = await racingApiClient.get<ApiResponse<PagedResult<TournamentDto>>>('/tournaments', { params });
+    return res.data.data!;
+  },
+  async getById(id: string) {
+    const res = await racingApiClient.get<ApiResponse<TournamentDto>>(`/tournaments/${id}`);
+    return res.data.data!;
+  },
+  async create(data: { name: string; description?: string; location?: string; startDate: string; endDate: string }) {
+    const res = await racingApiClient.post<ApiResponse<TournamentDto>>('/tournaments', data);
+    return res.data.data!;
+  },
+  async update(id: string, data: { name: string; description?: string; location?: string; startDate: string; endDate: string; totalPrizePool?: number }) {
+    const res = await racingApiClient.put<ApiResponse<TournamentDto>>(`/tournaments/${id}`, data);
+    return res.data.data!;
+  },
+};
+
+export const racesApi = {
+  async list(params?: { tournamentId?: string; search?: string; status?: number; pageNumber?: number; pageSize?: number }) {
+    const res = await racingApiClient.get<ApiResponse<PagedResult<RaceDto>>>('/races', { params });
+    return res.data.data!;
+  },
+  async getById(id: string) {
+    const res = await racingApiClient.get<ApiResponse<RaceDto>>(`/races/${id}`);
+    return res.data.data!;
+  },
+  async create(data: {
+    tournamentId: string; trackId: string; name: string; scheduledStart: string;
+    scheduledEnd?: string; distanceM: number; maxHorses: number;
+    registrationDeadline?: string; rounds: { roundNumber: number; name?: string; scheduledTime?: string }[];
+  }) {
+    const res = await racingApiClient.post<ApiResponse<RaceDto>>('/races', data);
+    return res.data.data!;
+  },
+  async update(id: string, data: {
+    name: string; scheduledStart: string; scheduledEnd?: string;
+    distanceM: number; maxHorses: number; registrationDeadline?: string;
+  }) {
+    await racingApiClient.put(`/races/${id}`, data);
+  },
+};
+
+export const entriesApi = {
+  async list(params?: { raceId?: string; horseId?: string; status?: number; pageNumber?: number; pageSize?: number }) {
+    const res = await racingApiClient.get<ApiResponse<PagedResult<RaceEntryDto>>>('/entries', { params });
+    return res.data.data!;
+  },
+  async register(raceId: string, horseId: string) {
+    const res = await racingApiClient.post<ApiResponse<RaceEntryDto>>('/entries', { raceId, horseId });
+    return res.data.data!;
+  },
+  async confirm(id: string) {
+    await racingApiClient.post(`/entries/${id}/confirm`);
+  },
+};
