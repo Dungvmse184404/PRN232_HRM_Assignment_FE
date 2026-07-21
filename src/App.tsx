@@ -8,10 +8,19 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import HorsesPage from './pages/HorsesPage';
 import UsersPage from './pages/admin/UsersPage';
-import AdminPredictionsPage from './pages/admin/AdminPredictionsPage';
-import PredictionsPage from './pages/PredictionsPage';
-import RacingResultsPage from './pages/RacingResultsPage';
-import { AdminRoute, ProtectedRoute } from './routes/Guards';
+import JockeysPage from './pages/admin/JockeysPage';
+import { AdminRoute, HorseOwnerRoute, JockeyRoute, ProtectedRoute } from './routes/Guards';
+import AssignRefereePage from './pages/racing/AssignRefereePage';
+import HorseInspectionPage from './pages/racing/HorseInspectionPage';
+import MonitorRacePage from './pages/racing/MonitorRacePage';
+import ViolationPage from './pages/racing/ViolationPage';
+import ConfirmResultPage from './pages/racing/ConfirmResultPage';
+import RaceReportPage from './pages/racing/RaceReportPage';
+// Jockey management pages (FR-16 → FR-22)
+import SendInvitationPage from './pages/jockey/SendInvitationPage';
+import ManageInvitationsPage from './pages/jockey/ManageInvitationsPage';
+import MyInvitationsPage from './pages/jockey/MyInvitationsPage';
+import MyAssignedRacesPage from './pages/jockey/MyAssignedRacesPage';
 
 /** Sends already-logged-in users away from the auth pages. */
 function GuestOnly({ children }: { children: React.ReactNode }) {
@@ -35,11 +44,29 @@ export default function App() {
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/horses" element={<HorsesPage />} />
-              <Route path="/predictions" element={<PredictionsPage />} />
-              <Route path="/racing-results" element={<RacingResultsPage />} />
+              <Route path="/racing/assign-referee" element={<AssignRefereePage />} />
+              <Route path="/racing/inspection" element={<HorseInspectionPage />} />
+              <Route path="/racing/monitor" element={<MonitorRacePage />} />
+              <Route path="/racing/violations" element={<ViolationPage />} />
+              <Route path="/racing/confirm-result" element={<ConfirmResultPage />} />
+              <Route path="/racing/report" element={<RaceReportPage />} />
+
+              {/* ---- FR-16 + FR-17 + FR-20: HorseOwner only ---- */}
+              <Route element={<HorseOwnerRoute />}>
+                <Route path="/jockey/send-invitation" element={<SendInvitationPage />} />
+                <Route path="/jockey/manage-invitations" element={<ManageInvitationsPage />} />
+              </Route>
+
+              {/* ---- FR-18 + FR-19 + FR-21: Jockey only ---- */}
+              <Route element={<JockeyRoute />}>
+                <Route path="/jockey/my-invitations" element={<MyInvitationsPage />} />
+                <Route path="/jockey/my-races" element={<MyAssignedRacesPage />} />
+              </Route>
+
+              {/* ---- Admin only ---- */}
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UsersPage />} />
-                <Route path="/admin/predictions" element={<AdminPredictionsPage />} />
+                <Route path="/admin/jockeys" element={<JockeysPage />} />
               </Route>
             </Route>
           </Route>
@@ -50,3 +77,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

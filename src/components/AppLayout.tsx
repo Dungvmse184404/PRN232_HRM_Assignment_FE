@@ -19,9 +19,39 @@ export default function AppLayout() {
             <TopLink to="/horses">Ngựa của tôi</TopLink>
             <TopLink to="/racing-results">Kết quả cuộc đua</TopLink>
             {user?.roles.includes('Spectator') && <TopLink to="/predictions">Dự đoán</TopLink>}
+            <TopLink to="/">Tổng quan</TopLink>
+            {(user?.roles.includes('HorseOwner') || isAdmin) && (
+              <TopLink to="/horses">Ngựa của tôi</TopLink>
+            )}
+            {/* HorseOwner: FR-16 + FR-17 + FR-20 */}
+            {user?.roles.includes('HorseOwner') && (
+              <>
+                <TopLink to="/jockey/send-invitation">Gửi lời mời</TopLink>
+                <TopLink to="/jockey/manage-invitations">Quản lý lời mời</TopLink>
+              </>
+            )}
+            {/* Jockey: FR-18 + FR-19 + FR-21 */}
+            {user?.roles.includes('Jockey') && (
+              <>
+                <TopLink to="/jockey/my-invitations">Lời mời của tôi</TopLink>
+                <TopLink to="/jockey/my-races">Cuộc đua của tôi</TopLink>
+              </>
+            )}
+            <TopLink to="/racing/monitor">Giám sát đua</TopLink>
+            {(isAdmin || user?.roles.includes('RaceReferee')) && (
+              <>
+                <TopLink to="/racing/inspection">Kiểm tra ngựa</TopLink>
+                <TopLink to="/racing/violations">Vi phạm</TopLink>
+                <TopLink to="/racing/confirm-result">Kết quả</TopLink>
+                <TopLink to="/racing/report">Biên bản</TopLink>
+              </>
+            )}
+            {isAdmin && <TopLink to="/racing/assign-referee">Phân công TT</TopLink>}
+            {isAdmin && <TopLink to="/admin/jockeys">Quản lý Jockey</TopLink>}
             {isAdmin && <TopLink to="/admin/users">Quản lý tài khoản</TopLink>}
             {isAdmin && <TopLink to="/admin/predictions">Quản lý dự đoán</TopLink>}
           </nav>
+
 
           <div className="ml-auto flex items-center gap-4">
             <div className="hidden text-right sm:block">
@@ -46,8 +76,7 @@ function TopLink({ to, children }: { to: string; children: React.ReactNode }) {
       to={to}
       end={to === '/'}
       className={({ isActive }) =>
-        `rounded-full px-3 py-1.5 font-medium transition ${
-          isActive ? 'bg-marigold text-ink' : 'text-stone hover:text-ink'
+        `rounded-full px-3 py-1.5 font-medium transition ${isActive ? 'bg-marigold text-ink' : 'text-stone hover:text-ink'
         }`
       }
     >

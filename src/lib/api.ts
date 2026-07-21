@@ -357,6 +357,26 @@ export const jockeyPerformanceApi = {
 };
 
 // ---- Racing service: Races & Entries ----
+// ---- Racing service (FR-23..28) ----
+// Enums mirrored from HRM.Assignment.Racing.Domain.Enums (stored as short, serialised as string via JsonStringEnumConverter)
+export type RaceStatus = 'Scheduled' | 'RegistrationOpen' | 'RegistrationClosed' | 'Ongoing' | 'Finished' | 'Cancelled';
+export type EntryStatus = 'Registered' | 'PendingApproval' | 'Approved' | 'Confirmed' | 'Rejected' | 'Withdrawn';
+export type InspectionResult = 'Eligible' | 'Ineligible';
+export type ViolationSeverity = 'Minor' | 'Major' | 'Disqualify';
+export type ResultStatus = 'Pending' | 'RefereeConfirmed' | 'Published';
+export type AssignmentStatus = 'Assigned' | 'Completed' | 'Cancelled';
+
+// DTOs — exactly mirror Application.Common.Models records
+export interface RaceRoundDto {
+  id: string;
+  raceId: string;
+  roundNumber: number;
+  name: string | null;
+  scheduledTime: string | null;
+  status: number;
+  statusName: string;
+}
+
 export interface RaceDto {
   id: string;
   tournamentId: string;
@@ -365,7 +385,7 @@ export interface RaceDto {
   trackName: string;
   name: string;
   scheduledStart: string;
-  scheduledEnd: string;
+  scheduledEnd: string | null;
   distanceM: number;
   maxHorses: number;
   entryCount: number;
@@ -373,6 +393,7 @@ export interface RaceDto {
   status: number;
   statusName: string;
   createdAtUtc: string;
+  rounds: RaceRoundDto[];
 }
 
 export interface RaceEntryDto {
@@ -390,157 +411,260 @@ export interface RaceEntryDto {
   confirmedAtUtc: string | null;
 }
 
-export const racesApi = {
-  async list(params?: {
-    tournamentId?: string;
-    search?: string;
-    status?: number;
-    pageNumber?: number;
-    pageSize?: number;
-  }) {
-    const res = await api.get<ApiResponse<PagedResult<RaceDto>>>('/racing/races', {
-      params: {
-        pageNumber: 1,
-        pageSize: 100,
-        ...params,
-      },
-    });
+export interface AssignedRaceEntryDto {
+  raceEntryId: string;
+  horseId: string;
+  horseName: string | null;
+  jockeyId: string | null;
+  jockeyName: string | null;
+  inspectionResult: number | null;
+  inspectionNote: string | null;
+}
+
+export interface AssignedRaceDto {
+  id: string;
+  raceId: string;
+  refereeUserId: string;
+  raceName: string;
+  scheduledStart: string;
+  status: AssignmentStatus;
+  assignedAtUtc: string;
+  entries: AssignedRaceEntryDto[];
+}
+
+export interface HorseInspectionDto {
+  id: string;
+  raceEntryId: string;
+  refereeUserId: string;
+  result: number;
+  resultName: string;
+  note: string | null;
+  inspectedAtUtc: string;
+}
+
+export interface ViolationDto {
+  id: string;
+  raceId: string;
+  raceEntryId: string | null;
+  jockeyId: string | null;
+  type: string;
+  severity: number;
+  severityName: string;
+  penalty: string | null;
+  note: string | null;
+  recordedBy: string;
+  recordedAtUtc: string;
+}
+
+export interface RaceResultDto {
+  id: string;
+  raceId: string;
+  raceEntryId: string;
+  horseId: string;
+  jockeyId: string | null;
+  finishPosition: number | null;
+  finishTimeMs: number | null;
+  status: number;
+  statusName: string;
+  confirmedBy: string | null;
+  confirmedAtUtc: string | null;
+}
+
+export interface RaceReportDto {
+  id: string;
+  raceId: string;
+  refereeUserId: string;
+  summary: string | null;
+  createdAtUtc: string;
+}
+
+export interface GetRacesParams {
+  tournamentId?: string;
+  search?: string;
+  status?: RaceStatus;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface GetEntriesParams {
+  raceId?: string;
+  horseId?: string;
+  status?: EntryStatus;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export const racingApi = {
+  // FR-25: List races (public)
+  async listRaces(params: GetRacesParams) {
+    const res = await api.get<ApiResponse<PagedResult<RaceDto>>>('/racing/races', { params });
     return res.data.data!;
   },
-};
-
-export const raceEntriesApi = {
-  async list(params?: {
-    raceId?: string;
-    horseId?: string;
-    status?: number;
-    pageNumber?: number;
-    pageSize?: number;
-  }) {
-    const res = await api.get<ApiResponse<PagedResult<RaceEntryDto>>>('/racing/entries', {
-      params: {
-        pageNumber: 1,
-        pageSize: 100,
-        ...params,
-      },
-    });
+  // FR-25: Get race by id (public)
+  async getRace(id: string) {
+    const res = await api.get<ApiResponse<RaceDto>>(`/racing/races/${id}`);
     return res.data.data!;
   },
-};
-
-// ---- Prediction service (FR-33..36) ----
-export type RewardType = 'Points' | 'Voucher' | 'Cash';
-export type PredictionStatus = 'Submitted' | 'Correct' | 'Wrong';
-export type RewardStatus = 'Pending' | 'Notified' | 'Paid';
-
-export interface PredictionRewardDto {
-  rewardId: string;
-  predictionId: string;
-  rewardType: RewardType;
-  amount: number | null;
-  status: RewardStatus;
-  createdAtUtc: string;
-}
-
-export interface MyPredictionDto {
-  predictionId: string;
-  raceId: string;
-  predictedWinnerHorseId: string;
-  status: PredictionStatus;
-  createdAtUtc: string;
-  lockedAtUtc: string | null;
-  reward: {
-    rewardId: string;
-    rewardType: RewardType;
-    amount: number | null;
-    status: RewardStatus;
-    createdAtUtc: string;
-  } | null;
-}
-
-export interface PredictionConfigDto {
-  configId: string;
-  raceId: string;
-  rules: string | null;
-  rewardType: RewardType;
-  rewardValue: number | null;
-  predictionDeadline: string | null;
-  isActive: boolean;
-  createdBy: string;
-  createdAtUtc: string;
-}
-
-export interface AdminPredictionDto {
-  predictionId: string;
-  raceId: string;
-  spectatorUserId: string;
-  predictedWinnerHorseId: string;
-  status: PredictionStatus;
-  createdAtUtc: string;
-  lockedAtUtc: string | null;
-}
-
-export interface SubmitPredictionPayload {
-  raceId: string;
-  predictedWinnerHorseId: string;
-}
-
-export interface CreatePredictionConfigPayload {
-  raceId: string;
-  rules?: string | null;
-  rewardType: RewardType;
-  rewardValue?: number | null;
-  predictionDeadline?: string | null;
-}
-
-export interface GradeRacePredictionsPayload {
-  winningHorseId: string;
-}
-
-export const predictionsApi = {
-  async submit(payload: SubmitPredictionPayload) {
-    const res = await api.post('/predictions', payload);
+  // FR-24: List race entries (any authenticated user)
+  async listEntries(params: GetEntriesParams) {
+    const res = await api.get<ApiResponse<PagedResult<RaceEntryDto>>>('/racing/entries', { params });
+    return res.data.data!;
+  },
+  // FR-23: Get races assigned to current referee
+  async getAssignedRaces(): Promise<AssignedRaceDto[]> {
+    const res = await api.get<AssignedRaceDto[]>('/officiating/races/assigned');
     return res.data;
   },
-  async getMine() {
-    const res = await api.get<MyPredictionDto[]>('/predictions/me');
+  // FR-23: Assign a referee to a race (Admin only)
+  async assignReferee(raceId: string, refereeUserId: string): Promise<{ message: string }> {
+    const res = await api.post<{ message: string }>(`/officiating/races/${raceId}/referees`, { refereeUserId });
     return res.data;
   },
-  async getMyRewards() {
-    const res = await api.get<PredictionRewardDto[]>('/predictions/me/rewards');
+  // FR-24: Record a horse inspection (Admin, RaceReferee)
+  async createInspection(raceEntryId: string, result: InspectionResult, note?: string): Promise<{ message: string }> {
+    const res = await api.post<{ message: string }>('/officiating/inspections', { raceEntryId, result, note });
     return res.data;
   },
-  async markRewardNotified(rewardId: string) {
-    const res = await api.post(`/predictions/me/rewards/${rewardId}/mark-notified`);
+  // FR-26: Record a violation (Admin, RaceReferee)
+  async recordViolation(payload: {
+    raceId: string;
+    raceEntryId?: string | null;
+    jockeyId?: string | null;
+    type: string;
+    severity: ViolationSeverity;
+    penalty?: string | null;
+    note?: string | null;
+  }): Promise<{ message: string }> {
+    const res = await api.post<{ message: string }>('/officiating/violations', payload);
+    return res.data;
+  },
+  // FR-27: Confirm a race result (Admin, RaceReferee)
+  async confirmResult(resultId: string): Promise<{ message: string }> {
+    const res = await api.put<{ message: string }>(`/results/${resultId}/confirm`, {});
+    return res.data;
+  },
+  // FR-28: Create race report (Admin, RaceReferee)
+  async createReport(raceId: string, summary?: string): Promise<{ message: string }> {
+    const res = await api.post<{ message: string }>('/results/reports', { raceId, summary });
     return res.data;
   },
 };
 
-export const adminPredictionsApi = {
-  async createConfig(payload: CreatePredictionConfigPayload) {
-    const res = await api.post<PredictionConfigDto>('/predictions/admin/configs', payload);
-    return res.data;
+// ---- Jockey service (FR-16 → FR-22) ----
+export type InvitationStatus = 'Pending' | 'Accepted' | 'Declined' | 'Cancelled' | 'Confirmed';
+export type JockeyStatus = 'Active' | 'Suspended' | 'Retired';
+
+export interface InvitationDto {
+  id: string;
+  raceId: string;
+  raceName: string;
+  horseId: string;
+  horseName: string | null;
+  jockeyId: string;
+  jockeyName: string | null;
+  message: string | null;
+  status: number;
+  statusName: InvitationStatus;
+  sentAtUtc: string;
+  respondedAtUtc: string | null;
+  confirmedAtUtc: string | null;
+}
+
+export interface AssignedRaceForJockeyDto {
+  invitationId: string;
+  raceId: string;
+  raceName: string;
+  scheduledStart: string;
+  horseId: string;
+  horseName: string | null;
+  horseBreed: string | null;
+  horseColor: string | null;
+  horseWeightKg: number | null;
+  horseHeightCm: number | null;
+  status: InvitationStatus;
+}
+
+export interface JockeyDto {
+  userId: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  status: number;
+  statusName: JockeyStatus;
+  totalRaces: number;
+  createdAtUtc: string;
+}
+
+export interface GetInvitationsParams {
+  horseId?: string;
+  status?: InvitationStatus;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface GetAllJockeysParams {
+  search?: string;
+  status?: JockeyStatus;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export const jockeyApi = {
+  // FR-16: Horse Owner gửi lời mời jockey
+  async sendInvitation(payload: {
+    raceId: string;
+    horseId: string;
+    jockeyId: string;
+    message?: string | null;
+  }): Promise<{ message: string }> {
+    const res = await api.post<ApiResponse<{ message: string }>>('/racing/jockeys/invitations', payload);
+    return res.data as unknown as { message: string };
   },
-  async getConfigs() {
-    const res = await api.get<PredictionConfigDto[]>('/predictions/admin/configs');
-    return res.data;
+
+  // FR-17: Horse Owner xem danh sách lời mời đã gửi (theo ngựa)
+  async getHorseInvitations(params: GetInvitationsParams): Promise<PagedResult<InvitationDto>> {
+    const res = await api.get<ApiResponse<PagedResult<InvitationDto>>>('/racing/jockeys/invitations', { params });
+    return res.data.data!;
   },
-  async disableConfig(configId: string) {
-    const res = await api.patch(`/predictions/admin/configs/${configId}/disable`);
-    return res.data;
+
+  // FR-17: Horse Owner hủy lời mời
+  async cancelInvitation(id: string): Promise<void> {
+    await api.delete(`/racing/jockeys/invitations/${id}`);
   },
-  async enableConfig(configId: string) {
-    const res = await api.patch(`/predictions/admin/configs/${configId}/enable`);
-    return res.data;
+
+  // FR-18: Jockey xem lời mời của mình
+  async getMyInvitations(params: { status?: InvitationStatus; pageNumber?: number; pageSize?: number }): Promise<PagedResult<InvitationDto>> {
+    const res = await api.get<ApiResponse<PagedResult<InvitationDto>>>('/racing/jockeys/me/invitations', { params });
+    return res.data.data!;
   },
-  async getAllPredictions() {
-    const res = await api.get<AdminPredictionDto[]>('/predictions/admin');
-    return res.data;
+
+  // FR-19: Jockey Accept / Decline lời mời
+  async respondInvitation(id: string, response: 'Accepted' | 'Declined'): Promise<void> {
+    await api.post(`/racing/jockeys/invitations/${id}/respond`, { response });
   },
-  async gradeRace(raceId: string, payload: GradeRacePredictionsPayload) {
-    const res = await api.post(`/predictions/admin/races/${raceId}/grade`, payload);
-    return res.data;
+
+  // FR-20: Horse Owner xác nhận jockey tham gia cuộc đua
+  async confirmJockey(id: string): Promise<void> {
+    await api.post(`/racing/jockeys/invitations/${id}/confirm`, {});
+  },
+
+  // FR-21: Jockey xem cuộc đua được phân công
+  async getMyAssignedRaces(params: { pageNumber?: number; pageSize?: number }): Promise<PagedResult<AssignedRaceForJockeyDto>> {
+    const res = await api.get<ApiResponse<PagedResult<AssignedRaceForJockeyDto>>>('/racing/jockeys/me/races', { params });
+    return res.data.data!;
+  },
+
+  // FR-22: Admin xem toàn bộ jockey
+  async getAllJockeys(params: GetAllJockeysParams): Promise<PagedResult<JockeyDto>> {
+    const res = await api.get<ApiResponse<PagedResult<JockeyDto>>>('/racing/jockeys', { params });
+    return res.data.data!;
+  },
+
+  // FR-22: Admin cập nhật trạng thái jockey
+  async updateJockeyStatus(id: string, status: JockeyStatus): Promise<void> {
+    await api.put(`/racing/jockeys/${id}/status`, { status });
   },
 };
 
 export default api;
+
