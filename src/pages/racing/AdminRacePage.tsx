@@ -1,6 +1,6 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { errorMessage, racesApi } from '../../lib/api';
+import { errorMessage, racesApi, tournamentsApi } from '../../lib/api';
 import { Alert, Button, Card, Field, Input } from '../../components/ui';
 
 interface RoundItem {
@@ -21,6 +21,7 @@ export default function AdminRacePage() {
   const navigate = useNavigate();
   const isEdit = !!id;
 
+  const [tournamentName, setTournamentName] = useState('');
   const [form, setForm] = useState({
     tournamentId: searchParams.get('tournamentId') ?? '',
     trackId: '',
@@ -36,47 +37,71 @@ export default function AdminRacePage() {
   const [error, setError] = useState<string | null>(null);
   const [fetching, setFetching] = useState(isEdit);
 
-  useEffect(() => {
+  // Fetch race data for edit mode
+  const load = useCallback(async () => {
     if (!id) return;
-    (async () => {
-      try {
-        const r = await racesApi.getById(id);
-        setForm({
-          tournamentId: r.tournamentId,
-          trackId: r.trackId,
-          name: r.name,
-          scheduledStart: r.scheduledStart.slice(0, 16),
-          scheduledEnd: r.scheduledEnd?.slice(0, 16) ?? '',
-          distanceM: String(r.distanceM),
-          maxHorses: String(r.maxHorses),
-          registrationDeadline: r.registrationDeadline?.slice(0, 16) ?? '',
-        });
-        if (r.rounds.length > 0) {
-          setRounds(r.rounds.map((rr) => ({
-            key: ++roundKey,
-            roundNumber: rr.roundNumber,
-            name: rr.name ?? '',
-            scheduledTime: rr.scheduledTime?.slice(0, 16) ?? '',
-          })));
-        }
-      } catch (err) {
-        setError(errorMessage(err));
-      } finally {
-        setFetching(false);
+    try {
+      const r = await racesApi.getById(id);
+      setForm({
+        tournamentId: r.tournamentId,
+        trackId: r.trackId,
+        name: r.name,
+        scheduledStart: r.scheduledStart.slice(0, 16),
+        scheduledEnd: r.scheduledEnd?.slice(0, 16) ?? '',
+        distanceM: String(r.distanceM),
+        maxHorses: String(r.maxHorses),
+        registrationDeadline: r.registrationDeadline?.slice(0, 16) ?? '',
+      });
+      if (r.rounds.length > 0) {
+        setRounds(r.rounds.map((rr) => ({
+          key: ++roundKey,
+          roundNumber: rr.roundNumber,
+          name: rr.name ?? '',
+          scheduledTime: rr.scheduledTime?.slice(0, 16) ?? '',
+        })));
       }
-    })();
+      setTournamentName(r.tournamentName);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setFetching(false);
+    }
   }, [id]);
+
+  // Fetch tournament name for create mode
+  useEffect(() => {
+    if (isEdit) {
+      load();
+    } else if (form.tournamentId) {
+      tournamentsApi.getById(form.tournamentId).then(t => setTournamentName(t.name)).catch(() => {});
+    }
+  }, [isEdit, form.tournamentId, load]);
 
   function upd(key: keyof typeof form, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  async function onTournamentIdBlur() {
+    if (!form.tournamentId || tournamentName) return;
+    try {
+      const t = await tournamentsApi.getById(form.tournamentId);
+      setTournamentName(t.name);
+    } catch {
+      setTournamentName('');
+    }
+  }
+
   function addRound() {
-    setRounds((prev) => [...prev, newRound(prev.length + 1)]);
+    const next = rounds.length > 0 ? Math.max(...rounds.map(r => r.roundNumber)) + 1 : 1;
+    setRounds((prev) => [...prev, newRound(next)]);
   }
 
   function removeRound(key: number) {
-    setRounds((prev) => prev.filter((r) => r.key !== key));
+    setRounds((prev) => {
+      const filtered = prev.filter((r) => r.key !== key);
+      // Re-index round numbers
+      return filtered.map((r, i) => ({ ...r, roundNumber: i + 1 }));
+    });
   }
 
   function updateRound(key: number, field: keyof RoundItem, value: string | number) {
@@ -129,13 +154,17 @@ export default function AdminRacePage() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <h1 className="text-3xl font-semibold tracking-tight">{isEdit ? 'Sửa cuộc đua' : 'Tạo cuộc đua mới'}</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">{isEdit ? `Sửa cuộc đua${tournamentName ? ` — ${tournamentName}` : ''}` : 'Tạo cuộc đua mới'}</h1>
       <Card className="mt-6">
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           {error && <Alert kind="error">{error}</Alert>}
 
           <Field label="Giải đấu (Tournament ID)">
-            <Input required disabled={isEdit} value={form.tournamentId} onChange={(e) => upd('tournamentId', e.target.value)} placeholder="GUID của giải đấu" />
+            <Input required disabled={isEdit} value={form.tournamentId}
+              onChange={(e) => upd('tournamentId', e.target.value)}
+              onBlur={onTournamentIdBlur}
+              placeholder="GUID của giải đấu" />
+            {tournamentName && <span className="mt-1 text-xs text-stone">Giải: {tournamentName}</span>}
           </Field>
           <Field label="Đường đua (Track ID)">
             <Input required disabled={isEdit} value={form.trackId} onChange={(e) => upd('trackId', e.target.value)} placeholder="GUID của đường đua" />
@@ -163,35 +192,37 @@ export default function AdminRacePage() {
             <Input type="datetime-local" value={form.registrationDeadline} onChange={(e) => upd('registrationDeadline', e.target.value)} />
           </Field>
 
-          {!isEdit && (
-            <div className="border-t border-parchment/60 pt-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-ink">Vòng đua ({rounds.length})</span>
-                <Button type="button" variant="neutral" onClick={addRound}>+ Thêm vòng</Button>
-              </div>
-              {rounds.length > 0 && (
-                <div className="mt-3 space-y-3">
-                  {rounds.map((r) => (
-                    <div key={r.key} className="flex items-end gap-2 rounded-[var(--radius-input)] border border-bone bg-cream/40 p-3">
-                      <div className="w-16">
-                        <span className="text-xs text-ash">Vòng #</span>
-                        <Input type="number" min={1} value={r.roundNumber} onChange={(e) => updateRound(r.key, 'roundNumber', Number(e.target.value))} />
-                      </div>
-                      <div className="flex-1">
-                        <span className="text-xs text-ash">Tên (tuỳ chọn)</span>
-                        <Input value={r.name} onChange={(e) => updateRound(r.key, 'name', e.target.value)} placeholder="Bán kết" />
-                      </div>
-                      <div className="flex-1">
-                        <span className="text-xs text-ash">Thời gian</span>
-                        <Input type="datetime-local" value={r.scheduledTime} onChange={(e) => updateRound(r.key, 'scheduledTime', e.target.value)} />
-                      </div>
-                      <Button type="button" variant="danger" onClick={() => removeRound(r.key)}>X</Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+          <div className="border-t border-parchment/60 pt-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-ink">Vòng đua ({rounds.length})</span>
+              <Button type="button" variant="neutral" onClick={addRound}>+ Thêm vòng</Button>
             </div>
-          )}
+            {rounds.length > 0 && (
+              <div className="mt-3 space-y-3">
+                {rounds.map((r) => (
+                  <div key={r.key} className="flex items-end gap-2 rounded-[var(--radius-input)] border border-bone bg-cream/40 p-3">
+                    <div className="w-16">
+                      <span className="text-xs text-ash">Vòng #</span>
+                      <input type="number" min={1} value={r.roundNumber} readOnly
+                        className="w-full rounded-[var(--radius-input)] border border-bone bg-paper/50 px-3 py-2.5 text-sm text-stone outline-none" />
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-xs text-ash">Tên (tuỳ chọn)</span>
+                      <Input value={r.name} onChange={(e) => updateRound(r.key, 'name', e.target.value)} placeholder="Bán kết" />
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-xs text-ash">Thời gian</span>
+                      <Input type="datetime-local" value={r.scheduledTime} onChange={(e) => updateRound(r.key, 'scheduledTime', e.target.value)} />
+                    </div>
+                    <Button type="button" variant="danger" onClick={() => removeRound(r.key)}>X</Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {rounds.length === 0 && (
+              <p className="mt-2 text-xs text-ash">Chưa có vòng đua nào. Thêm vòng để xếp lịch thi đấu.</p>
+            )}
+          </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="neutral" type="button" onClick={() => navigate(-1)}>Hủy</Button>

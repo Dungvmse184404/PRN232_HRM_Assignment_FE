@@ -53,6 +53,7 @@ export default function AppLayout() {
             {isAdmin && <TopLink to="/racing/assign-referee">Phân công TT</TopLink>}
             {isAdmin && <TopLink to="/admin/jockeys">Quản lý Jockey</TopLink>}
             {isAdmin && <TopLink to="/admin/users">Quản lý tài khoản</TopLink>}
+            {isAdmin && <TopLink to="/admin/entries">Duyệt đăng ký</TopLink>}
             {isAdmin && <TopLink to="/admin/predictions">Quản lý dự đoán</TopLink>}
           </nav>
 

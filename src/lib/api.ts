@@ -791,4 +791,107 @@ export const entriesApi = {
   async confirm(id: string) {
     await racingApiClient.post(`/entries/${id}/confirm`);
   },
+  async approve(id: string) {
+    await racingApiClient.post(`/entries/${id}/approve`);
+  },
+};
+
+// ---- Prediction service types & API (FR-33..36) ----
+export type RewardType = 'Points' | 'Voucher' | 'Cash';
+export type PredictionStatus = 'Submitted' | 'Correct' | 'Wrong';
+export type RewardStatus = 'Pending' | 'Notified' | 'Paid';
+
+export interface MyPredictionDto {
+  predictionId: string;
+  raceId: string;
+  predictedWinnerHorseId: string;
+  status: PredictionStatus;
+  createdAtUtc: string;
+  lockedAtUtc: string | null;
+  reward: PredictionRewardDto | null;
+}
+
+export interface PredictionRewardDto {
+  rewardId: string;
+  predictionId?: string;
+  rewardType: RewardType;
+  amount: number | null;
+  status: RewardStatus;
+  createdAtUtc: string;
+}
+
+export interface AdminPredictionDto {
+  predictionId: string;
+  raceId: string;
+  spectatorUserId: string;
+  predictedWinnerHorseId: string;
+  status: PredictionStatus;
+  createdAtUtc: string;
+  lockedAtUtc: string | null;
+}
+
+export interface PredictionConfigDto {
+  configId: string;
+  raceId: string;
+  rules: string | null;
+  rewardType: RewardType;
+  rewardValue: number | null;
+  predictionDeadline: string | null;
+  isActive: boolean;
+  createdBy: string;
+  createdAtUtc: string;
+}
+
+const predictionClient = axios.create({ baseURL: '/api/predictions' });
+predictionClient.interceptors.request.use((config) => {
+  const token = tokenStore.access;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export const predictionsApi = {
+  async submit(payload: { raceId: string; predictedWinnerHorseId: string }) {
+    const res = await predictionClient.post<ApiResponse<unknown>>('', payload);
+    return res.data;
+  },
+  async getMine() {
+    const res = await predictionClient.get<MyPredictionDto[]>('/me');
+    return res.data;
+  },
+  async getMyRewards() {
+    const res = await predictionClient.get<PredictionRewardDto[]>('/me/rewards');
+    return res.data;
+  },
+  async markRewardNotified(rewardId: string) {
+    const res = await predictionClient.post<ApiResponse<unknown>>(`/me/rewards/${rewardId}/mark-notified`);
+    return res.data;
+  },
+};
+
+export const adminPredictionsApi = {
+  async createConfig(payload: {
+    raceId: string; rules?: string | null; rewardType: RewardType;
+    rewardValue?: number | null; predictionDeadline?: string | null;
+  }) {
+    const res = await predictionClient.post<ApiResponse<unknown>>('/admin/configs', payload);
+    return res.data;
+  },
+  async getConfigs() {
+    const res = await predictionClient.get<PredictionConfigDto[]>('/admin/configs');
+    return res.data;
+  },
+  async disableConfig(configId: string) {
+    await predictionClient.patch(`/admin/configs/${configId}/disable`);
+  },
+  async enableConfig(configId: string) {
+    await predictionClient.patch(`/admin/configs/${configId}/enable`);
+  },
+  async getAllPredictions() {
+    const res = await predictionClient.get<AdminPredictionDto[]>('/admin');
+    return res.data;
+  },
+  async gradeRace(raceId: string, payload: { winningHorseId: string }) {
+    const res = await predictionClient.post<unknown>(`/admin/races/${raceId}/grade`, payload);
+    return res.data;
+  },
 };

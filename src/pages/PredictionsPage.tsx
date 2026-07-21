@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import {
+  entriesApi,
   errorMessage,
   horsesApi,
   predictionsApi,
-  raceEntriesApi,
   racesApi,
   type MyPredictionDto,
   type PredictionRewardDto,
@@ -97,7 +97,7 @@ export default function PredictionsPage() {
     if (!newRaceId) return;
     setEntriesLoading(true);
     try {
-      const result = await raceEntriesApi.list({ raceId: newRaceId, pageNumber: 1, pageSize: 100 });
+      const result = await entriesApi.list({ raceId: newRaceId, pageNumber: 1, pageSize: 100 });
       setEntries(result.items);
       await loadHorseNames(result.items);
     } catch (err) {

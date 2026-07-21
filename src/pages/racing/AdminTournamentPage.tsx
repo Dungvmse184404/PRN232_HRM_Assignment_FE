@@ -45,16 +45,15 @@ export default function AdminTournamentPage() {
         location: form.location || undefined,
         startDate: form.startDate,
         endDate: form.endDate,
-        ...(isEdit ? { totalPrizePool: form.totalPrizePool ? Number(form.totalPrizePool) : undefined } : {}),
+        totalPrizePool: form.totalPrizePool ? Number(form.totalPrizePool) : undefined,
       };
       if (isEdit) {
         await tournamentsApi.update(id!, payload as any);
+        navigate(`/tournaments/${id}`, { replace: true });
       } else {
         const t = await tournamentsApi.create(payload);
         navigate(`/tournaments/${t.id}`, { replace: true });
-        return;
       }
-      navigate(`/tournaments/${id}`, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -87,11 +86,9 @@ export default function AdminTournamentPage() {
               <Input type="date" required value={form.endDate} onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))} />
             </Field>
           </div>
-          {isEdit && (
-            <Field label="Tổng tiền thưởng (VND)">
-              <Input type="number" value={form.totalPrizePool} onChange={(e) => setForm((f) => ({ ...f, totalPrizePool: e.target.value }))} placeholder="100000000" />
-            </Field>
-          )}
+          <Field label="Tổng tiền thưởng (VND)">
+            <Input type="number" value={form.totalPrizePool} onChange={(e) => setForm((f) => ({ ...f, totalPrizePool: e.target.value }))} placeholder="100000000" />
+          </Field>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="neutral" type="button" onClick={() => navigate(-1)}>Hủy</Button>
             <Button type="submit" loading={loading}>{isEdit ? 'Lưu' : 'Tạo'}</Button>

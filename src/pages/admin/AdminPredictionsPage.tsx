@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   adminPredictionsApi,
+  entriesApi,
   errorMessage,
   horsesApi,
-  raceEntriesApi,
   racesApi,
   type AdminPredictionDto,
   type PredictionConfigDto,
@@ -105,7 +105,7 @@ export default function AdminPredictionsPage() {
     if (!newRaceId) return;
     setGradeEntriesLoading(true);
     try {
-      const result = await raceEntriesApi.list({ raceId: newRaceId, pageNumber: 1, pageSize: 100 });
+      const result = await entriesApi.list({ raceId: newRaceId, pageNumber: 1, pageSize: 100 });
       setGradeEntries(result.items);
       await loadHorseNames(result.items);
     } catch (err) {
