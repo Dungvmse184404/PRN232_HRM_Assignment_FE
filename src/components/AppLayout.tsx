@@ -4,6 +4,7 @@ import { Button } from './ui';
 
 export default function AppLayout() {
   const { user, isAdmin, logout } = useAuth();
+  const isHorseOwner = user?.roles.includes('HorseOwner');
 
   return (
     <div className="min-h-full">
@@ -16,7 +17,9 @@ export default function AppLayout() {
 
           <nav className="flex items-center gap-1 text-sm">
             <TopLink to="/">Tổng quan</TopLink>
-            {isAdmin && <TopLink to="/admin/users">Quản lý tài khoản</TopLink>}
+            <TopLink to="/tournaments">Giải đấu</TopLink>
+            {isHorseOwner && <TopLink to="/my-horses/schedule">Lịch ngựa</TopLink>}
+            {isAdmin && <TopLink to="/admin/users">Tài khoản</TopLink>}
           </nav>
 
           <div className="ml-auto flex items-center gap-4">
