@@ -7,7 +7,7 @@ export default function AuthLayout() {
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <div className="inline-flex items-center gap-2 text-2xl font-bold text-flame">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-flame text-paper">🏇</span>
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-flame text-white">🏇</span>
             HRM
           </div>
           <p className="mt-1 text-sm text-stone">Horse Racing Management</p>

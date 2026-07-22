@@ -90,9 +90,9 @@ export default function AppLayout() {
   ];
 
   return (
-    <div className="min-h-full md:flex">
+    <div className="app-shell min-h-screen md:flex">
       {/* Mobile top bar */}
-      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-parchment/60 bg-cream/85 px-4 py-3 backdrop-blur md:hidden">
+      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-parchment/60 bg-[rgba(20,16,12,0.72)] px-4 py-3 backdrop-blur md:hidden">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -102,8 +102,14 @@ export default function AppLayout() {
           ☰
         </button>
         <Link to="/dashboard" className="flex items-center gap-2 text-lg font-bold text-flame">
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-flame text-paper">🏇</span>
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-flame text-white">🏇</span>
           HRM
+        </Link>
+        <Link
+          to="/"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-parchment px-3 py-1.5 text-xs font-semibold text-stone transition hover:border-flame hover:text-ink"
+        >
+          <span aria-hidden="true">←</span> Trang chủ
         </Link>
       </div>
 
@@ -117,23 +123,31 @@ export default function AppLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-parchment/60 bg-paper transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-parchment/60 bg-paper backdrop-blur-2xl transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between px-5 py-5">
-          <Link to="/dashboard" className="flex items-center gap-2 text-lg font-bold text-flame">
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-flame text-paper">🏇</span>
-            HRM
-          </Link>
-          <button
-            type="button"
-            onClick={() => setMobileOpen(false)}
-            className="grid h-8 w-8 place-items-center rounded-full text-stone hover:text-ink md:hidden"
-            aria-label="Đóng menu"
+        <div className="px-5 pb-4 pt-5">
+          <div className="flex items-center justify-between">
+            <Link to="/dashboard" className="flex items-center gap-2 text-lg font-bold text-flame">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-flame text-white">🏇</span>
+              HRM
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="grid h-8 w-8 place-items-center rounded-full text-stone hover:text-ink md:hidden"
+              aria-label="Đóng menu"
+            >
+              ✕
+            </button>
+          </div>
+          <Link
+            to="/"
+            className="mt-4 inline-flex items-center gap-2 rounded-full border border-parchment px-3.5 py-1.5 text-xs font-semibold text-stone transition hover:border-flame hover:text-ink"
           >
-            ✕
-          </button>
+            <span aria-hidden="true">←</span> Về trang chủ
+          </Link>
         </div>
 
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
@@ -187,7 +201,9 @@ function SidebarLink({ to, icon, end, children }: { to: string; icon: string; en
       end={end}
       className={({ isActive }) =>
         `flex items-center gap-2.5 rounded-[var(--radius-input)] px-3 py-2 text-sm font-medium transition ${
-          isActive ? 'bg-marigold text-ink' : 'text-stone hover:bg-cream hover:text-ink'
+          isActive
+            ? 'bg-marigold text-ink shadow-[inset_0_0_0_1px_rgba(184,134,59,0.35)]'
+            : 'text-stone hover:bg-cream hover:text-ink'
         }`
       }
     >

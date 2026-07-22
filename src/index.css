@@ -38,3 +38,61 @@ body {
   letter-spacing: 0.015em;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ---------------------------------------------------------------------------
+   Dashboard skin — obsidian / crimson / gold, the same tone as the landing hero.
+   Everything under AppLayout is wrapped in .app-shell, and Tailwind v4 compiles
+   utilities down to var(--color-*), so re-pointing the tokens here re-skins every
+   dashboard page without touching a single page component.
+   --------------------------------------------------------------------------- */
+.app-shell {
+  /* Harvest tokens, remapped for a dark surface */
+  --color-ink: #f3e9d8;
+  --color-stone: #b9ac97;
+  --color-ash: #9c9078;
+  --color-driftwood: rgba(185, 172, 151, 0.55);
+
+  --color-paper: rgba(31, 24, 17, 0.55);
+  --color-cream: rgba(243, 233, 216, 0.07);
+  --color-parchment: rgba(243, 233, 216, 0.16);
+  --color-bone: rgba(243, 233, 216, 0.2);
+  --color-mist: rgba(243, 233, 216, 0.14);
+
+  --color-flame: #9c3226;
+  --color-flame-dark: #c1503f;
+  --color-marigold: rgba(184, 134, 59, 0.24);
+
+  /* Tailwind's default palette is var-backed too, so the red/green status accents
+     used by Badge/Alert follow the dark skin from here instead of per-page edits. */
+  --color-red-50: rgba(193, 80, 63, 0.14);
+  --color-red-200: rgba(193, 80, 63, 0.38);
+  --color-red-600: #e79385;
+  --color-red-700: #eda596;
+  --color-green-50: rgba(93, 168, 122, 0.14);
+  --color-green-200: rgba(93, 168, 122, 0.35);
+  --color-green-700: #86d3a6;
+
+  --shadow-soft: 0 12px 30px -16px rgba(0, 0, 0, 0.8);
+  --gold: #b8863b;
+
+  color: var(--color-ink);
+  background-color: #14100c;
+  background-image:
+    radial-gradient(1100px 620px at 6% -12%, rgba(156, 50, 38, 0.22), transparent 62%),
+    radial-gradient(900px 520px at 96% 2%, rgba(184, 134, 59, 0.13), transparent 58%),
+    radial-gradient(760px 520px at 46% 112%, rgba(156, 50, 38, 0.12), transparent 62%);
+  background-attachment: fixed;
+}
+
+/* Editorial serif for headings, matching the hero. Body copy stays Inter. */
+.app-shell h1,
+.app-shell h2 {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  letter-spacing: 0;
+}
+
+/* Native dropdown lists inherit the light `color`, so pin them back to the skin. */
+.app-shell select option {
+  background-color: #1f1811;
+  color: #f3e9d8;
+}

@@ -8,8 +8,17 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-semibold">Xin chào, {user?.fullName} 👋</h1>
-        <p className="mt-1 text-stone">Đây là khu vực kiểm thử dịch vụ Identity của HRM.</p>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[var(--gold,#b8863b)]">
+          Bảng điều khiển
+        </span>
+        <h1 className="mt-2 text-3xl font-semibold">Xin chào, {user?.fullName} 👋</h1>
+        {/* Same photo-finish sweep as the landing hero, tying the two surfaces together. */}
+        <span
+          aria-hidden="true"
+          className="mt-3 block h-px w-[180px]"
+          style={{ background: 'linear-gradient(90deg, var(--color-flame-dark), var(--gold, #b8863b), transparent)' }}
+        />
+        <p className="mt-3 text-stone">Đây là khu vực kiểm thử dịch vụ Identity của HRM.</p>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">

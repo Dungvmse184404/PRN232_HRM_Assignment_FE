@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react
 type Variant = 'primary' | 'ghost' | 'danger' | 'neutral';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-flame text-paper hover:bg-flame-dark shadow-[var(--shadow-soft)]',
+  primary: 'bg-flame text-white hover:bg-flame-dark shadow-[var(--shadow-soft)]',
   ghost: 'bg-transparent text-flame hover:underline',
   danger: 'bg-transparent text-red-600 border border-red-200 hover:bg-red-50',
   neutral: 'bg-paper text-ink border border-bone hover:border-stone',
@@ -58,7 +58,7 @@ export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInpu
 export function Card({ className = '', children }: { className?: string; children: ReactNode }) {
   return (
     <div
-      className={`rounded-[var(--radius-card)] border border-parchment/60 bg-paper p-8 ${className}`}
+      className={`rounded-[var(--radius-card)] border border-parchment/60 bg-paper p-8 shadow-[var(--shadow-soft)] backdrop-blur-[14px] ${className}`}
     >
       {children}
     </div>
