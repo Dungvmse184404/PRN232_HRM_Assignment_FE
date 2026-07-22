@@ -3,11 +3,12 @@ import { entriesApi, errorMessage, type PagedResult, type RaceEntryDto } from '.
 import { Alert, Badge, Button, Card, Spinner } from '../../components/ui';
 
 const ENTRY_STATUS: Record<number, { label: string; tone: 'neutral' | 'green' | 'red' | 'flame' }> = {
-  0: { label: 'Chờ duyệt', tone: 'flame' },
+  // #13 fix: đúng 6 EntryStatus + label chính xác + tone phân biệt.
+  0: { label: 'Đã đăng ký', tone: 'neutral' },
   1: { label: 'Chờ duyệt', tone: 'flame' },
   2: { label: 'Đã duyệt', tone: 'green' },
   3: { label: 'Đã xác nhận', tone: 'green' },
-  4: { label: 'Từ chối', tone: 'red' },
+  4: { label: 'Bị từ chối', tone: 'red' },
   5: { label: 'Đã rút', tone: 'neutral' },
 };
 
@@ -53,6 +54,21 @@ export default function AdminEntriesPage() {
     }
   }
 
+  async function reject(id: string) {
+    if (!window.confirm('Bạn có chắc muốn từ chối đăng ký này?')) return;
+    setActing(id);
+    setError(null);
+    try {
+      await entriesApi.reject(id);
+      await load();
+    } catch (err) {
+      const msg = errorMessage(err);
+      setError(msg.includes('404') || msg.toLowerCase().includes('not found') ? 'Chức năng chưa khả dụng.' : msg);
+    } finally {
+      setActing(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div>
@@ -68,10 +84,13 @@ export default function AdminEntriesPage() {
             onChange={(e) => { setPage(1); setStatusFilter(Number(e.target.value)); }}
             className="rounded-[var(--radius-input)] border border-bone bg-paper px-3 py-2 text-sm outline-none focus:border-flame"
           >
-            <option value={0}>Chờ duyệt (Registered)</option>
+            <option value={0}>Đã đăng ký (Registered)</option>
+            <option value={1}>Chờ duyệt (PendingApproval)</option>
             <option value={2}>Đã duyệt (Approved)</option>
             <option value={3}>Đã xác nhận (Confirmed)</option>
-            <option value={-1}>Tất cả</option>
+            <option value={4}>Bị từ chối (Rejected)</option>
+            <option value={5}>Đã rút (Withdrawn)</option>
+            <option value={-1}>— Tất cả —</option>
           </select>
         </div>
       </Card>
@@ -102,14 +121,13 @@ export default function AdminEntriesPage() {
                 {data.items.map((e) => (
                   <tr key={e.id} className="border-b border-parchment/40 last:border-0 hover:bg-cream/40">
                     <td className="px-5 py-3">
-                      <div className="font-medium text-ink">{e.raceName}</div>
-                      <div className="text-xs text-ash font-mono">{e.raceId.slice(0, 8)}...</div>
+                      <div className="font-medium text-ink">{e.raceName || '—'}</div>
                     </td>
                     <td className="px-5 py-3">
                       {e.horseName ? (
                         <span className="text-ink">{e.horseName}</span>
                       ) : (
-                        <span className="text-xs text-stone font-mono">{e.horseId.slice(0, 8)}...</span>
+                        <span className="text-xs text-stone">—</span>
                       )}
                     </td>
                     <td className="px-5 py-3">
@@ -119,7 +137,7 @@ export default function AdminEntriesPage() {
                           {e.ownerEmail && <div className="text-xs text-ash">{e.ownerEmail}</div>}
                         </div>
                       ) : (
-                        <span className="text-xs text-stone font-mono">{e.ownerUserId.slice(0, 8)}...</span>
+                        <span className="text-xs text-stone">—</span>
                       )}
                     </td>
                     <td className="px-5 py-3 text-xs text-stone">{new Date(e.registeredAtUtc).toLocaleString('vi-VN')}</td>
@@ -128,7 +146,10 @@ export default function AdminEntriesPage() {
                     </td>
                     <td className="px-5 py-3 text-right">
                       {e.status === 0 ? (
-                        <Button loading={acting === e.id} onClick={() => approve(e.id)}>Duyệt</Button>
+                        <div className="flex justify-end gap-1.5">
+                          <Button loading={acting === e.id} onClick={() => approve(e.id)}>Duyệt</Button>
+                          <Button variant="danger" loading={acting === e.id} onClick={() => reject(e.id)}>Từ chối</Button>
+                        </div>
                       ) : e.status === 2 ? (
                         <span className="text-xs text-green-700">Đã duyệt</span>
                       ) : e.status === 3 ? (

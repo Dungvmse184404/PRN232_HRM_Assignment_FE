@@ -16,23 +16,34 @@ interface NavGroup {
 }
 
 export default function AppLayout() {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const isHorseOwner = user?.roles.includes('HorseOwner');
   const isJockey = user?.roles.includes('Jockey');
   const isSpectator = user?.roles.includes('Spectator');
   const isRefereeOrAdmin = isAdmin || user?.roles.includes('RaceReferee');
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Guest (chưa login) chỉ thấy mục "Giải đấu" (FR-11/12).
+  // Authenticated user thấy nav đầy đủ theo role — không lẫn mục của role khác.
   const groups: NavGroup[] = [
     {
       title: 'Chung',
       items: [
-        { to: '/dashboard', label: 'Tổng quan', icon: '🏠', end: true },
-        { to: '/horses', label: 'Ngựa của tôi', icon: '🐎' },
-        { to: '/racing-results', label: 'Kết quả cuộc đua', icon: '🏆' },
-        ...(isSpectator ? [{ to: '/predictions', label: 'Dự đoán', icon: '🔮' }] : []),
+        ...(isAuthenticated
+          ? [
+              { to: '/dashboard', label: 'Tổng quan', icon: '🏠', end: true },
+              { to: '/racing-results', label: 'Kết quả cuộc đua', icon: '🏆' },
+              ...(isSpectator ? [{ to: '/predictions', label: 'Dự đoán', icon: '🔮' }] : []),
+            ]
+          : []),
         { to: '/tournaments', label: 'Giải đấu', icon: '🏅' },
-        ...(isHorseOwner ? [{ to: '/my-horses/schedule', label: 'Lịch ngựa', icon: '📅' }] : []),
+        // "Ngựa của tôi" + "Lịch ngựa" chỉ cho HorseOwner
+        ...(isHorseOwner
+          ? [
+              { to: '/horses', label: 'Ngựa của tôi', icon: '🐎' },
+              { to: '/my-horses/schedule', label: 'Lịch ngựa', icon: '📅' },
+            ]
+          : []),
       ],
     },
     // HorseOwner: FR-16 + FR-17 + FR-20
@@ -59,29 +70,32 @@ export default function AppLayout() {
           },
         ]
       : []),
-    {
-      title: 'Đua',
-      items: [
-        { to: '/racing/monitor', label: 'Giám sát đua', icon: '📡' },
-        ...(isRefereeOrAdmin
-          ? [
+    // Đua — chỉ Admin / RaceReferee mới thấy nhóm này
+    ...(isRefereeOrAdmin
+      ? [
+          {
+            title: 'Đua',
+            items: [
+              { to: '/racing/monitor', label: 'Giám sát đua', icon: '📡' },
               { to: '/racing/inspection', label: 'Kiểm tra ngựa', icon: '🩺' },
               { to: '/racing/violations', label: 'Vi phạm', icon: '⚠️' },
               { to: '/racing/confirm-result', label: 'Kết quả', icon: '✅' },
               { to: '/racing/report', label: 'Biên bản', icon: '📝' },
-            ]
-          : []),
-      ],
-    },
+              { to: '/racing/assign-referee', label: 'Phân công TT', icon: '🧑‍⚖️' },
+            ],
+          },
+        ]
+      : []),
     ...(isAdmin
       ? [
           {
             title: 'Quản trị',
             items: [
-              { to: '/racing/assign-referee', label: 'Phân công TT', icon: '🧑‍⚖️' },
+              { to: '/admin/tournaments', label: 'Quản lý giải đấu', icon: '🏅' },
+              { to: '/admin/races', label: 'Quản lý cuộc đua', icon: '🏁' },
+              { to: '/admin/entries', label: 'Duyệt đăng ký', icon: '📥' },
               { to: '/admin/jockeys', label: 'Quản lý Jockey', icon: '🏇' },
               { to: '/admin/users', label: 'Quản lý tài khoản', icon: '👤' },
-              { to: '/admin/entries', label: 'Duyệt đăng ký', icon: '📥' },
               { to: '/admin/predictions', label: 'Quản lý dự đoán', icon: '🔮' },
             ],
           },
@@ -149,13 +163,32 @@ export default function AppLayout() {
         </nav>
 
         <div className="border-t border-parchment/60 px-4 py-4">
-          <div className="mb-3">
-            <div className="truncate text-sm font-medium text-ink">{user?.fullName}</div>
-            <div className="truncate text-xs text-ash">{user?.email}</div>
-          </div>
-          <Button variant="neutral" onClick={logout} className="w-full">
-            Đăng xuất
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <div className="mb-3">
+                <div className="truncate text-sm font-medium text-ink">{user?.fullName}</div>
+                <div className="truncate text-xs text-ash">{user?.email}</div>
+              </div>
+              <Button variant="neutral" onClick={logout} className="w-full">
+                Đăng xuất
+              </Button>
+            </>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <Link
+                to="/login"
+                className="rounded-[var(--radius-input)] bg-flame px-3 py-2 text-center text-sm font-semibold text-paper hover:bg-flame/90"
+              >
+                Đăng nhập
+              </Link>
+              <Link
+                to="/register"
+                className="rounded-[var(--radius-input)] border border-bone px-3 py-2 text-center text-sm font-medium text-ink hover:bg-cream"
+              >
+                Đăng ký
+              </Link>
+            </div>
+          )}
         </div>
       </aside>
 

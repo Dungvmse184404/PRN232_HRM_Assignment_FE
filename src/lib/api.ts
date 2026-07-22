@@ -760,6 +760,13 @@ export const tournamentsApi = {
     const res = await racingApiClient.put<ApiResponse<TournamentDto>>(`/tournaments/${id}`, data);
     return res.data.data!;
   },
+  async updateStatus(id: string, status: number) {
+    const res = await racingApiClient.patch<ApiResponse<TournamentDto>>(`/tournaments/${id}/status`, { status });
+    return res.data.data!;
+  },
+  async delete(id: string) {
+    await racingApiClient.delete(`/tournaments/${id}`);
+  },
 };
 
 export const racesApi = {
@@ -782,8 +789,16 @@ export const racesApi = {
   async update(id: string, data: {
     name: string; scheduledStart: string; scheduledEnd?: string;
     distanceM: number; maxHorses: number; registrationDeadline?: string;
+    rounds?: { roundNumber: number; name?: string; scheduledTime?: string }[];
   }) {
     await racingApiClient.put(`/races/${id}`, data);
+  },
+  async updateStatus(id: string, status: number) {
+    const res = await racingApiClient.patch<ApiResponse<RaceDto>>(`/races/${id}/status`, { status });
+    return res.data.data!;
+  },
+  async delete(id: string) {
+    await racingApiClient.delete(`/races/${id}`);
   },
 };
 
@@ -801,6 +816,30 @@ export const entriesApi = {
   },
   async approve(id: string) {
     await racingApiClient.post(`/entries/${id}/approve`);
+  },
+  async withdraw(id: string) {
+    await racingApiClient.post(`/entries/${id}/withdraw`);
+  },
+  async reject(id: string) {
+    await racingApiClient.post(`/entries/${id}/reject`);
+  },
+};
+
+// ---- Tracks ----
+export interface TrackDto {
+  id: string;
+  name: string;
+  lengthM: number;
+  surfaceType: string;
+  location: string | null;
+}
+
+export const tracksApi = {
+  async list(): Promise<TrackDto[]> {
+    const res = await racingApiClient.get<ApiResponse<TrackDto[]>>('/tracks');
+    // BE trả về direct array (không wrapped trong ApiResponse), nhưng nếu có wrap thì lấy .data
+    if (Array.isArray(res.data)) return res.data as unknown as TrackDto[];
+    return res.data.data ?? [];
   },
 };
 

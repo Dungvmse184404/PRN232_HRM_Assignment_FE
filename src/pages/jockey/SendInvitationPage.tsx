@@ -5,14 +5,16 @@ import {
   jockeyApi,
   racingApi,
   type HorseDto,
+  type JockeyDto,
   type RaceDto,
   type PagedResult,
 } from '../../lib/api';
-import { Alert, Badge, Button, Card, Field, Input, Spinner } from '../../components/ui';
+import { Alert, Badge, Button, Card, Field, Spinner } from '../../components/ui';
 
 export default function SendInvitationPage() {
   const [races, setRaces] = useState<RaceDto[]>([]);
   const [horses, setHorses] = useState<HorseDto[]>([]);
+  const [jockeys, setJockeys] = useState<JockeyDto[]>([]);
   const [loadingInit, setLoadingInit] = useState(true);
 
   const [raceId, setRaceId] = useState('');
@@ -27,12 +29,15 @@ export default function SendInvitationPage() {
   const loadInit = useCallback(async () => {
     setLoadingInit(true);
     try {
-      const [raceData, horseData]: [PagedResult<RaceDto>, PagedResult<HorseDto>] = await Promise.all([
-        racingApi.listRaces({ pageSize: 100 }),
-        horsesApi.list({ pageSize: 100, status: 'Active' }),
-      ]);
+      const [raceData, horseData, jockeyData]: [PagedResult<RaceDto>, PagedResult<HorseDto>, PagedResult<JockeyDto>] =
+        await Promise.all([
+          racingApi.listRaces({ pageSize: 100 }),
+          horsesApi.list({ pageSize: 100, status: 'Active' }),
+          jockeyApi.getAllJockeys({ pageSize: 200 }),
+        ]);
       setRaces(raceData.items);
       setHorses(horseData.items);
+      setJockeys(jockeyData.items);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -44,8 +49,8 @@ export default function SendInvitationPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!raceId || !horseId || !jockeyId.trim()) {
-      setError('Vui lòng chọn cuộc đua, ngựa và nhập ID jockey.');
+    if (!raceId || !horseId || !jockeyId) {
+      setError('Vui lòng chọn cuộc đua, ngựa và jockey.');
       return;
     }
     setSubmitting(true);
@@ -55,10 +60,11 @@ export default function SendInvitationPage() {
       await jockeyApi.sendInvitation({
         raceId,
         horseId,
-        jockeyId: jockeyId.trim(),
+        jockeyId,
         message: message.trim() || null,
       });
-      setSuccess('Đã gửi lời mời tới jockey thành công!');
+      const jockeyName = jockeys.find((j) => j.userId === jockeyId)?.fullName ?? 'jockey';
+      setSuccess(`Đã gửi lời mời tới ${jockeyName} thành công!`);
       setJockeyId('');
       setMessage('');
     } catch (err) {
@@ -70,6 +76,7 @@ export default function SendInvitationPage() {
 
   const selectedRace = races.find((r) => r.id === raceId);
   const selectedHorse = horses.find((h) => h.id === horseId);
+  const selectedJockey = jockeys.find((j) => j.userId === jockeyId);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -151,15 +158,41 @@ export default function SendInvitationPage() {
               </div>
             )}
 
-            {/* Jockey ID */}
-            <Field label="ID Jockey *" hint="Nhập UserId của jockey cần mời (lấy từ Admin > Quản lý tài khoản)">
-              <Input
+            {/* Jockey */}
+            <Field label="Jockey *">
+              <select
                 value={jockeyId}
                 onChange={(e) => setJockeyId(e.target.value)}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                className="rounded-[var(--radius-input)] border border-bone bg-paper px-4 py-2.5 text-sm text-ink outline-none focus:border-flame focus:ring-2 focus:ring-flame/30"
                 required
-              />
+              >
+                <option value="">— Chọn jockey —</option>
+                {jockeys.length === 0 && (
+                  <option value="" disabled>Không có jockey nào</option>
+                )}
+                {jockeys.map((j) => (
+                  <option key={j.userId} value={j.userId}>
+                    {j.fullName} · {j.email}{j.phone ? ` · ${j.phone}` : ''} · {j.totalRaces} cuộc đua
+                  </option>
+                ))}
+              </select>
             </Field>
+
+            {selectedJockey && (
+              <div className="flex items-center gap-3 rounded-xl border border-parchment/60 bg-cream p-3">
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-marigold text-lg">🏇</span>
+                <div className="flex-1">
+                  <p className="font-medium text-ink">{selectedJockey.fullName}</p>
+                  <p className="text-xs text-ash">
+                    {selectedJockey.email}
+                    {selectedJockey.phone ? ` · ${selectedJockey.phone}` : ''}
+                  </p>
+                </div>
+                <Badge tone={selectedJockey.status === 0 ? 'green' : 'neutral'}>
+                  {selectedJockey.status === 0 ? 'Hoạt động' : 'Không hoạt động'}
+                </Badge>
+              </div>
+            )}
 
             {/* Message */}
             <Field label="Lời nhắn (tuỳ chọn)">

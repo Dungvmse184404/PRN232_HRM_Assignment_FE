@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { entriesApi, errorMessage, horsesApi, racesApi, type HorseDto, type RaceDto } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 import { Alert, Badge, Button, Card, Field, Spinner } from '../../components/ui';
@@ -13,8 +13,16 @@ const RACE_STATUS: Record<number, { label: string; tone: 'neutral' | 'green' | '
   5: { label: 'Đã hủy', tone: 'red' },
 };
 
+const RACE_VALID_TRANSITIONS: Record<number, { value: number; label: string }[]> = {
+  0: [{ value: 1, label: 'Mở đăng ký' }, { value: 5, label: 'Đã hủy' }],
+  1: [{ value: 2, label: 'Đóng đăng ký' }, { value: 5, label: 'Đã hủy' }],
+  2: [{ value: 3, label: 'Đang diễn ra' }],
+  3: [{ value: 4, label: 'Đã kết thúc' }],
+};
+
 export default function RaceDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const [race, setRace] = useState<RaceDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,6 +34,9 @@ export default function RaceDetailPage() {
   const [registering, setRegistering] = useState(false);
   const [regMsg, setRegMsg] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [newStatus, setNewStatus] = useState<number | ''>('');
+  const [changingStatus, setChangingStatus] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const isHorseOwner = user?.roles.includes('HorseOwner');
 
@@ -43,6 +54,40 @@ export default function RaceDetailPage() {
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);
+
+  async function changeStatus() {
+    if (!race || newStatus === '') return;
+    const targetLabel = RACE_VALID_TRANSITIONS[race.status]?.find(t => t.value === newStatus)?.label ?? '';
+    if (!window.confirm(`Bạn có chắc muốn đổi trạng thái thành "${targetLabel}"?`)) return;
+    setChangingStatus(true);
+    setError(null);
+    try {
+      await racesApi.updateStatus(race.id, newStatus);
+      await load();
+      setNewStatus('');
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setChangingStatus(false);
+    }
+  }
+
+  async function deleteRace() {
+    if (!race) return;
+    if (!window.confirm(`Bạn có chắc muốn XÓA cuộc đua "${race.name}"? Hành động này không thể hoàn tác.`)) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await racesApi.delete(race.id);
+      navigate(`/tournaments/${race.tournamentId}`, { replace: true });
+    } catch (err) {
+      setError(errorMessage(err));
+      setDeleting(false);
+    }
+  }
+
+  // FR-09/10: Admin chỉ xóa được race khi Scheduled + chưa có entry.
+  const canDelete = isAdmin && race?.status === 0 && race.entryCount === 0;
 
   async function openRegisterForm() {
     setShowForm(true);
@@ -76,7 +121,9 @@ export default function RaceDetailPage() {
   if (error) return <Alert kind="error">{error}</Alert>;
   if (!race) return <Alert kind="error">Không tìm thấy cuộc đua.</Alert>;
 
-  const canRegister = race.status === 0 || race.status === 1;
+  // #6 fix: chỉ cho đăng ký khi race đang mở (RegistrationOpen = 1).
+  // Trước đây cho cả Scheduled (0) -> FE hiện nút nhưng BE (C3 fix) reject -> UX xấu.
+  const canRegister = race.status === 1;
   const notFull = race.entryCount < race.maxHorses;
 
   return (
@@ -95,8 +142,29 @@ export default function RaceDetailPage() {
           </Badge>
         </div>
         {isAdmin && (
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-wrap gap-2 items-end">
             <Link to={`/admin/races/${race.id}/edit`}><Button variant="neutral">Sửa cuộc đua</Button></Link>
+            {canDelete && (
+              <Button variant="danger" loading={deleting} onClick={deleteRace}>Xóa cuộc đua</Button>
+            )}
+            {RACE_VALID_TRANSITIONS[race.status]?.length > 0 && (
+              <div className="flex items-end gap-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-ash">Đổi trạng thái</span>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="rounded-[var(--radius-input)] border border-bone bg-paper px-3 py-2 text-sm outline-none focus:border-flame"
+                  >
+                    <option value="">-- Chọn --</option>
+                    {RACE_VALID_TRANSITIONS[race.status].map(t => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <Button loading={changingStatus} disabled={newStatus === ''} onClick={changeStatus}>Đổi</Button>
+              </div>
+            )}
           </div>
         )}
       </div>

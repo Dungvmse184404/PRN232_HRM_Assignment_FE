@@ -10,6 +10,8 @@ import HorsesPage from './pages/HorsesPage';
 import UsersPage from './pages/admin/UsersPage';
 import AdminEntriesPage from './pages/admin/AdminEntriesPage';
 import JockeysPage from './pages/admin/JockeysPage';
+import AdminTournamentsListPage from './pages/admin/AdminTournamentsListPage';
+import AdminRacesListPage from './pages/admin/AdminRacesListPage';
 import { AdminRoute, HorseOwnerRoute, JockeyRoute, ProtectedRoute } from './routes/Guards';
 import AssignRefereePage from './pages/racing/AssignRefereePage';
 import HorseInspectionPage from './pages/racing/HorseInspectionPage';
@@ -55,18 +57,17 @@ export default function App() {
             <Route path="/register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
           </Route>
 
+          {/* FR-11/12: public viewing — guest + authenticated mọi role đều xem được */}
+          <Route element={<AppLayout />}>
+            <Route path="/tournaments" element={<TournamentsPage />} />
+            <Route path="/tournaments/:id" element={<TournamentDetailPage />} />
+            <Route path="/races/:id" element={<RaceDetailPage />} />
+          </Route>
+
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/horses" element={<HorsesPage />} />
-
-              {/* Racing — public views (FR-11/12) */}
-              <Route path="/tournaments" element={<TournamentsPage />} />
-              <Route path="/tournaments/:id" element={<TournamentDetailPage />} />
-              <Route path="/races/:id" element={<RaceDetailPage />} />
-
-              {/* Racing — Horse Owner (FR-14/15) */}
-              <Route path="/my-horses/schedule" element={<HorseSchedulePage />} />
 
               {/* Racing — results / officiating */}
               <Route path="/racing-results" element={<RacingResultsPage />} />
@@ -79,6 +80,7 @@ export default function App() {
 
               {/* ---- FR-16 + FR-17 + FR-20: HorseOwner only ---- */}
               <Route element={<HorseOwnerRoute />}>
+                <Route path="/my-horses/schedule" element={<HorseSchedulePage />} />
                 <Route path="/jockey/send-invitation" element={<SendInvitationPage />} />
                 <Route path="/jockey/manage-invitations" element={<ManageInvitationsPage />} />
               </Route>
@@ -98,8 +100,10 @@ export default function App() {
                 <Route path="/admin/entries" element={<AdminEntriesPage />} />
                 <Route path="/admin/jockeys" element={<JockeysPage />} />
                 <Route path="/admin/predictions" element={<AdminPredictionsPage />} />
+                <Route path="/admin/tournaments" element={<AdminTournamentsListPage />} />
                 <Route path="/admin/tournaments/new" element={<AdminTournamentPage />} />
                 <Route path="/admin/tournaments/:id/edit" element={<AdminTournamentPage />} />
+                <Route path="/admin/races" element={<AdminRacesListPage />} />
                 <Route path="/admin/races/new" element={<AdminRacePage />} />
                 <Route path="/admin/races/:id/edit" element={<AdminRacePage />} />
               </Route>

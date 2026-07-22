@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { errorMessage, racesApi, tournamentsApi } from '../../lib/api';
+import { errorMessage, racesApi, tournamentsApi, tracksApi, type TournamentDto, type TrackDto } from '../../lib/api';
 import { Alert, Button, Card, Field, Input } from '../../components/ui';
 
 interface RoundItem {
@@ -36,6 +36,8 @@ export default function AdminRacePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetching, setFetching] = useState(isEdit);
+  const [tournaments, setTournaments] = useState<TournamentDto[]>([]);
+  const [tracks, setTracks] = useState<TrackDto[]>([]);
 
   // Fetch race data for edit mode
   const load = useCallback(async () => {
@@ -77,18 +79,14 @@ export default function AdminRacePage() {
     }
   }, [isEdit, form.tournamentId, load]);
 
+  // Load tournaments and tracks for dropdowns
+  useEffect(() => {
+    tournamentsApi.list({ pageSize: 200 }).then(r => setTournaments(r.items)).catch(() => {});
+    tracksApi.list().then(setTracks).catch(() => {});
+  }, []);
+
   function upd(key: keyof typeof form, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
-  }
-
-  async function onTournamentIdBlur() {
-    if (!form.tournamentId || tournamentName) return;
-    try {
-      const t = await tournamentsApi.getById(form.tournamentId);
-      setTournamentName(t.name);
-    } catch {
-      setTournamentName('');
-    }
   }
 
   function addRound() {
@@ -130,6 +128,7 @@ export default function AdminRacePage() {
       };
 
       if (isEdit) {
+        // FR-10: gửi kèm rounds để BE đồng bộ (thêm / update / xóa vòng).
         await racesApi.update(id!, {
           name: payload.name,
           scheduledStart: payload.scheduledStart,
@@ -137,6 +136,7 @@ export default function AdminRacePage() {
           distanceM: payload.distanceM,
           maxHorses: payload.maxHorses,
           registrationDeadline: payload.registrationDeadline,
+          rounds: payload.rounds,
         });
         navigate(`/races/${id}`, { replace: true });
       } else {
@@ -159,15 +159,37 @@ export default function AdminRacePage() {
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           {error && <Alert kind="error">{error}</Alert>}
 
-          <Field label="Giải đấu (Tournament ID)">
-            <Input required disabled={isEdit} value={form.tournamentId}
-              onChange={(e) => upd('tournamentId', e.target.value)}
-              onBlur={onTournamentIdBlur}
-              placeholder="GUID của giải đấu" />
-            {tournamentName && <span className="mt-1 text-xs text-stone">Giải: {tournamentName}</span>}
+          <Field label="Giải đấu">
+            <select
+              required
+              disabled={isEdit}
+              value={form.tournamentId}
+              onChange={(e) => {
+                upd('tournamentId', e.target.value);
+                const t = tournaments.find(x => x.id === e.target.value);
+                if (t) setTournamentName(t.name);
+              }}
+              className="rounded-[var(--radius-input)] border border-bone bg-paper px-4 py-2.5 text-sm text-ink outline-none focus:border-flame focus:ring-2 focus:ring-flame/30 w-full"
+            >
+              <option value="">-- Chọn giải đấu --</option>
+              {tournaments.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
           </Field>
-          <Field label="Đường đua (Track ID)">
-            <Input required disabled={isEdit} value={form.trackId} onChange={(e) => upd('trackId', e.target.value)} placeholder="GUID của đường đua" />
+          <Field label="Đường đua">
+            <select
+              required
+              disabled={isEdit}
+              value={form.trackId}
+              onChange={(e) => upd('trackId', e.target.value)}
+              className="rounded-[var(--radius-input)] border border-bone bg-paper px-4 py-2.5 text-sm text-ink outline-none focus:border-flame focus:ring-2 focus:ring-flame/30 w-full"
+            >
+              <option value="">-- Chọn đường đua --</option>
+              {tracks.map(t => (
+                <option key={t.id} value={t.id}>{t.name} ({t.lengthM}m{t.location ? `, ${t.location}` : ''})</option>
+              ))}
+            </select>
           </Field>
           <Field label="Tên cuộc đua">
             <Input required value={form.name} onChange={(e) => upd('name', e.target.value)} placeholder="Chung kết 1200m" />
