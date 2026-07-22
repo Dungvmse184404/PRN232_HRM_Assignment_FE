@@ -11,7 +11,7 @@ export default function DashboardPage() {
         <span className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[var(--gold,#b8863b)]">
           Bảng điều khiển
         </span>
-        <h1 className="mt-2 text-3xl font-semibold">Xin chào, {user?.fullName} 👋</h1>
+        <h1 className="mt-2 text-3xl font-semibold">Xin chào, {user?.fullName} </h1>
         {/* Same photo-finish sweep as the landing hero, tying the two surfaces together. */}
         <span
           aria-hidden="true"

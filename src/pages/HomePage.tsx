@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import HeroBackdrop from './home/HeroBackdrop';
+import { prefersReducedMotion, scrollToTop } from '../lib/motion';
 import CommandCenterSection from './home/CommandCenterSection';
 import TrackPulseSection from './home/TrackPulseSection';
 import LiveSeasonSection from './home/LiveSeasonSection';
@@ -43,12 +45,56 @@ const FINAL_ROUND_MS = (2 * 3600 + 14 * 60 + 30) * 1000;
 
 const VALID_MOUNT_ANCHORS: AnchorId[] = ['mua-giai', 'ket-qua'];
 
+/** How long the hero clears out before the popup shell takes over. */
+const LAUNCH_MS = 430;
+
+/**
+ * Staggered exit for the hero blocks the popup would otherwise overlap.
+ * Applied to the wrappers, so their already-revealed children fade along with them.
+ */
+function heroExit(launching: boolean, delay: string, base: string) {
+  if (!launching) return { className: base };
+  return { className: `${base} home-exit`, style: { animationDelay: delay } as CSSProperties };
+}
+
 export default function HomePage() {
   const { isAuthenticated, user } = useAuth();
   const isSpectator = user?.roles.includes('Spectator') ?? false;
   const primaryHref = isAuthenticated ? '/dashboard' : '/login';
   const remaining = useCountdown(FINAL_ROUND_MS);
   const location = useLocation();
+  const navigate = useNavigate();
+  const [launching, setLaunching] = useState(false);
+  const launchTimer = useRef<number>();
+
+  useEffect(() => () => window.clearTimeout(launchTimer.current), []);
+
+  /**
+   * Entering the system never leaves this page — the hero clears out and the
+   * shell fades up as a glass popup over the very same backdrop. Any scroll
+   * offset is unwound first so the popup does not open over a half-scrolled page.
+   */
+  const launchShell = useCallback(
+    (to: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+      event.preventDefault();
+      if (launchTimer.current) return;
+
+      if (prefersReducedMotion()) {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+        navigate(to);
+        return;
+      }
+
+      scrollToTop(() => {
+        setLaunching(true);
+        launchTimer.current = window.setTimeout(() => navigate(to), LAUNCH_MS);
+      });
+    },
+    [navigate],
+  );
+
+  const exitProps = (delay: string, base: string) => heroExit(launching, delay, base);
 
   // Deep-link support: /#mua-giai or /#ket-qua scrolls to that section once, on first mount only.
   useEffect(() => {
@@ -74,47 +120,34 @@ export default function HomePage() {
         }
         .timing-sweep { animation: timingSweep 1.1s cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: left center; }
 
+        @keyframes homeExit {
+          from { opacity: 1; transform: none; }
+          to { opacity: 0; transform: translateY(-18px) scale(0.985); }
+        }
+        .home-exit { animation: homeExit 360ms cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+
         @media (prefers-reduced-motion: reduce) {
           .home-reveal { animation: none; opacity: 1; transform: none; }
           .timing-sweep { animation: none; transform: scaleX(1); }
+          .home-exit { animation: none; opacity: 0; }
         }
         .font-display { font-family: ${DISPLAY_FONT}; }
       `}</style>
 
-      {/* ---- Cinematic background photo ---- */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 -z-30 bg-cover"
-        style={{ backgroundImage: "url('/images/hero-racing.jpg')", backgroundPosition: '70% 32%' }}
-      />
-      {/* Horizontal dark wash: strong on the left (text zone), lighter over the jump on the right */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 -z-20"
-        style={{
-          background:
-            'linear-gradient(90deg, rgba(20,16,12,0.96) 0%, rgba(20,16,12,0.90) 26%, rgba(20,16,12,0.62) 50%, rgba(20,16,12,0.34) 72%, rgba(20,16,12,0.52) 100%)',
-        }}
-      />
-      {/* Top vignette so the nav row stays legible over pale sky */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-x-0 top-0 -z-10 h-40"
-        style={{ background: 'linear-gradient(to bottom, rgba(20,16,12,0.7), transparent)' }}
-      />
-      {/* Bottom vignette blending the photo into the stat rail */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-x-0 bottom-0 -z-10 h-56"
-        style={{ background: 'linear-gradient(to top, rgba(20,16,12,0.92), transparent)' }}
-      />
+      {/* ---- Cinematic background photo + washes (shared with the popup shell) ---- */}
+      <HeroBackdrop />
 
       <div className="relative z-10 flex min-h-screen flex-col">
-        <SiteHeader isAuthenticated={isAuthenticated} isSpectator={isSpectator} />
+        <SiteHeader
+          isAuthenticated={isAuthenticated}
+          isSpectator={isSpectator}
+          launching={launching}
+          onLaunch={launchShell('/dashboard')}
+        />
 
         <main className="flex flex-1 items-center px-6 py-8 sm:py-10">
           <div className="mx-auto grid w-full max-w-[1280px] gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-16">
-            <div className="max-w-xl">
+            <div {...exitProps('40ms', 'max-w-xl')}>
               <h1
                 className="home-reveal font-display text-4xl leading-[1.08] text-[var(--parchment)] sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl"
                 style={{ animationDelay: '80ms' }}
@@ -138,6 +171,7 @@ export default function HomePage() {
               <div className="home-reveal mt-8 flex flex-wrap items-center gap-4" style={{ animationDelay: '420ms' }}>
                 <Link
                   to={primaryHref}
+                  onClick={launchShell(primaryHref)}
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--crimson)] px-7 py-3.5 text-sm font-semibold text-white shadow-[0_14px_32px_-10px_rgba(0,0,0,0.65)] transition hover:-translate-y-0.5 hover:brightness-110 sm:text-base"
                 >
                   Vào hệ thống
@@ -161,7 +195,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="relative flex flex-col items-center gap-8 lg:items-end lg:gap-10 lg:pt-6">
+            <div
+              {...exitProps('90ms', 'relative flex flex-col items-center gap-8 lg:items-end lg:gap-10 lg:pt-6')}
+            >
               <RaceCard remainingMs={remaining} delay="220ms" />
               <div className="lg:mr-14 xl:mr-20">
                 <RankingCard delay="380ms" />
@@ -170,7 +206,7 @@ export default function HomePage() {
           </div>
         </main>
 
-        <StatRail />
+        <StatRail exitProps={exitProps('140ms', 'relative z-10 border-t border-[var(--parchment)]/10 px-6 py-5')} />
       </div>
     </div>
 
@@ -185,7 +221,17 @@ export default function HomePage() {
   );
 }
 
-function SiteHeader({ isAuthenticated, isSpectator }: { isAuthenticated: boolean; isSpectator: boolean }) {
+function SiteHeader({
+  isAuthenticated,
+  isSpectator,
+  launching,
+  onLaunch,
+}: {
+  isAuthenticated: boolean;
+  isSpectator: boolean;
+  launching: boolean;
+  onLaunch: (event: MouseEvent<HTMLAnchorElement>) => void;
+}) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -237,7 +283,13 @@ function SiteHeader({ isAuthenticated, isSpectator }: { isAuthenticated: boolean
   }, []);
 
   return (
-    <header className="relative z-10 mx-auto flex w-full max-w-[1280px] items-center justify-between gap-6 px-6 py-6">
+    <header
+      {...heroExit(
+        launching,
+        '0ms',
+        'relative z-10 mx-auto flex w-full max-w-[1280px] items-center justify-between gap-6 px-6 py-6',
+      )}
+    >
       <div className="flex flex-1 items-center gap-4 text-[var(--parchment)]/75">
         <button
           ref={hamburgerRef}
@@ -281,6 +333,7 @@ function SiteHeader({ isAuthenticated, isSpectator }: { isAuthenticated: boolean
         {isAuthenticated ? (
           <Link
             to="/dashboard"
+            onClick={onLaunch}
             className="inline-flex items-center justify-center rounded-full bg-[var(--crimson)] px-5 py-2 text-sm font-semibold text-white transition hover:brightness-110"
           >
             Bảng điều khiển
@@ -410,9 +463,9 @@ function RankingCard({ delay }: { delay: string }) {
   );
 }
 
-function StatRail() {
+function StatRail({ exitProps }: { exitProps: { className: string; style?: CSSProperties } }) {
   return (
-    <div className="relative z-10 border-t border-[var(--parchment)]/10 px-6 py-5">
+    <div {...exitProps}>
       <div className="mx-auto grid w-full max-w-[1280px] grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 sm:divide-x sm:divide-[var(--parchment)]/10">
         {STATS.map((stat, index) => (
           <div key={stat.label} className={`flex flex-col gap-1 ${index > 0 ? 'sm:pl-6' : ''}`}>
