@@ -91,7 +91,7 @@ export default function AdminEntriesPage() {
               <thead className="border-b border-parchment/60 bg-cream/60 text-xs uppercase tracking-wide text-ash">
                 <tr>
                   <Th>Cuộc đua</Th>
-                  <Th>Ngựa ID</Th>
+                  <Th>Ngựa</Th>
                   <Th>Chủ sở hữu</Th>
                   <Th>Đăng ký lúc</Th>
                   <Th>Trạng thái</Th>
@@ -105,8 +105,23 @@ export default function AdminEntriesPage() {
                       <div className="font-medium text-ink">{e.raceName}</div>
                       <div className="text-xs text-ash font-mono">{e.raceId.slice(0, 8)}...</div>
                     </td>
-                    <td className="px-5 py-3 text-xs text-stone font-mono">{e.horseId.slice(0, 8)}...</td>
-                    <td className="px-5 py-3 text-xs text-stone font-mono">{e.ownerUserId.slice(0, 8)}...</td>
+                    <td className="px-5 py-3">
+                      {e.horseName ? (
+                        <span className="text-ink">{e.horseName}</span>
+                      ) : (
+                        <span className="text-xs text-stone font-mono">{e.horseId.slice(0, 8)}...</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3">
+                      {e.ownerFullName ? (
+                        <div>
+                          <div className="text-ink">{e.ownerFullName}</div>
+                          {e.ownerEmail && <div className="text-xs text-ash">{e.ownerEmail}</div>}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-stone font-mono">{e.ownerUserId.slice(0, 8)}...</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-xs text-stone">{new Date(e.registeredAtUtc).toLocaleString('vi-VN')}</td>
                     <td className="px-5 py-3">
                       <Badge tone={ENTRY_STATUS[e.status]?.tone ?? 'neutral'}>{ENTRY_STATUS[e.status]?.label ?? e.statusName}</Badge>

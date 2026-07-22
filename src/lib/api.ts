@@ -409,6 +409,10 @@ export interface RaceEntryDto {
   isActive: boolean;
   registeredAtUtc: string;
   confirmedAtUtc: string | null;
+  // Enriched server-side via gRPC (Horse/Identity) — null if not resolved (see ADR-0006).
+  horseName: string | null;
+  ownerEmail: string | null;
+  ownerFullName: string | null;
 }
 
 export interface AssignedRaceEntryDto {
@@ -726,6 +730,10 @@ export interface RaceEntryDto {
   isActive: boolean;
   registeredAtUtc: string;
   confirmedAtUtc: string | null;
+  // Enriched server-side via gRPC (Horse/Identity) — null if not resolved (see ADR-0006).
+  horseName: string | null;
+  ownerEmail: string | null;
+  ownerFullName: string | null;
 }
 
 const racingApiClient = axios.create({ baseURL: '/api/racing' });
