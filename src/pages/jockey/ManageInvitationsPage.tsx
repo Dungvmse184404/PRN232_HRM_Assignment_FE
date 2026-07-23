@@ -9,6 +9,7 @@ import {
   type PagedResult,
 } from '../../lib/api';
 import { Alert, Badge, Button, Card, Spinner } from '../../components/ui';
+import { RefreshIcon } from '../../components/icons';
 
 const PAGE_SIZE = 10;
 
@@ -84,7 +85,8 @@ export default function ManageInvitationsPage() {
         <div>
           <h1 className="text-3xl font-semibold">Quản lý lời mời Jockey</h1>
           <p className="mt-1 text-stone">
-            Xem, hủy lời mời (FR-17) và xác nhận jockey tham gia cuộc đua (FR-20).
+            Xem và hủy lời mời (FR-17). Jockey chấp nhận lời mời là được xác nhận tham gia cuộc đua luôn,
+            không cần thao tác thêm.
           </p>
         </div>
       </div>
@@ -118,7 +120,9 @@ export default function ManageInvitationsPage() {
               ))}
             </select>
           </div>
-          <Button variant="neutral" onClick={() => void load()}>🔄 Làm mới</Button>
+          <Button variant="neutral" onClick={() => void load()}>
+            <RefreshIcon className="h-4 w-4" /> Làm mới
+          </Button>
         </div>
       </Card>
 
@@ -155,10 +159,10 @@ export default function ManageInvitationsPage() {
                     <td className="px-5 py-3.5">
                       <p className="font-medium text-ink">{inv.raceName}</p>
                     </td>
-                    <td className="px-5 py-3.5 text-stone">{inv.horseName ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-stone">{inv.horseName ?? '-'}</td>
                     <td className="px-5 py-3.5 text-stone">{inv.jockeyName ?? inv.jockeyId.slice(0, 8) + '…'}</td>
                     <td className="max-w-[180px] px-5 py-3.5 text-stone">
-                      <p className="truncate">{inv.message || '—'}</p>
+                      <p className="truncate">{inv.message || '-'}</p>
                     </td>
                     <td className="px-5 py-3.5">
                       <Badge tone={STATUS_TONE[inv.statusName]}>
@@ -183,20 +187,8 @@ export default function ManageInvitationsPage() {
                             Hủy
                           </Button>
                         )}
-                        {/* FR-20: Xác nhận jockey khi đã Accepted */}
-                        {inv.statusName === 'Accepted' && (
-                          <Button
-                            onClick={() => {
-                              if (confirm(`Xác nhận jockey tham gia cuộc đua "${inv.raceName}"?`)) {
-                                void act(() => jockeyApi.confirmJockey(inv.id), 'Đã xác nhận jockey tham gia cuộc đua.');
-                              }
-                            }}
-                          >
-                            ✅ Xác nhận
-                          </Button>
-                        )}
-                        {(inv.statusName === 'Declined' || inv.statusName === 'Cancelled' || inv.statusName === 'Confirmed') && (
-                          <span className="text-xs text-ash italic">—</span>
+                        {inv.statusName !== 'Pending' && (
+                          <span className="text-xs text-ash italic">-</span>
                         )}
                       </div>
                     </td>

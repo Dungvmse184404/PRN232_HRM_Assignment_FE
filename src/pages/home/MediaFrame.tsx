@@ -13,7 +13,7 @@ export interface MediaFrameProps {
 
 /**
  * A media slot that renders a real photo once `src` is supplied, or an
- * intentional editorial placeholder otherwise — never a broken-image icon,
+ * intentional editorial placeholder otherwise - never a broken-image icon,
  * never a request to a file that doesn't exist yet.
  */
 export default function MediaFrame({
@@ -43,7 +43,7 @@ export default function MediaFrame({
           className="relative flex h-full w-full flex-col justify-end border border-[#F3E9D8]/10"
           style={{ background: 'linear-gradient(160deg, #1F1811 0%, #14100C 60%, #1A130D 100%)' }}
         >
-          {/* faint grid texture — editorial, not a skeleton shimmer */}
+          {/* faint grid texture - editorial, not a skeleton shimmer */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 opacity-30"
@@ -67,7 +67,7 @@ export default function MediaFrame({
         </div>
       )}
 
-      {/* Video affordance — a visual cue only, on top of either the real photo or the placeholder. */}
+      {/* Video affordance - a visual cue only, on top of either the real photo or the placeholder. */}
       {isVideo && (
         <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/15">
           <PlayIcon className={src ? 'h-12 w-12 text-white/85 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]' : 'h-10 w-10 text-[#F3E9D8]/25'} />

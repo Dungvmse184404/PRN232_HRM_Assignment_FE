@@ -12,7 +12,7 @@ export const PRIMARY_NAV_ITEMS: NavItem[] = [
   { order: '04', label: 'Bảng xếp hạng', href: '/#ket-qua', isAnchor: true },
 ];
 
-/** Only appended for authenticated Spectator users — see getNavItems. */
+/** Only appended for authenticated Spectator users - see getNavItems. */
 export const PREDICTIONS_NAV_ITEM: NavItem = {
   order: '05',
   label: 'Dự đoán',

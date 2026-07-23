@@ -43,7 +43,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold">Hành động</h2>
           <p className="mt-1 text-sm text-stone">
             {isAdmin
-              ? 'Bạn là Admin — có thể quản lý toàn bộ tài khoản người dùng.'
+              ? 'Bạn là Admin - có thể quản lý toàn bộ tài khoản người dùng.'
               : 'Tài khoản của bạn không có quyền Admin. Đăng nhập bằng tài khoản Admin để thử quản lý người dùng.'}
           </p>
           <div className="mt-auto pt-4">

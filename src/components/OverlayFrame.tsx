@@ -31,7 +31,7 @@ export function useOverlayClose(to: string) {
 }
 
 /**
- * A glass panel floating over the landing hero — the shell every signed-in
+ * A glass panel floating over the landing hero - the shell every signed-in
  * surface renders into, so entering the system never leaves the home page
  * behind visually.
  */
@@ -73,7 +73,7 @@ export default function OverlayFrame({
         className="overlay-scrim absolute inset-0 bg-[rgba(12,9,7,0.5)] backdrop-blur-[18px]"
       />
 
-      {/* Sizing lives with the caller — two competing max-w/h utilities on one
+      {/* Sizing lives with the caller - two competing max-w/h utilities on one
           element would resolve by stylesheet order, not by intent. */}
       <div
         className={`overlay-panel relative flex w-full overflow-hidden border border-[rgba(243,233,216,0.13)] sm:rounded-[28px] ${panelClassName}`}

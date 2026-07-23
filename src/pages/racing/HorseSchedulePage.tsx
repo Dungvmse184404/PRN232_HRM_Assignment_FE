@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { entriesApi, errorMessage, type PagedResult, type RaceEntryDto } from '../../lib/api';
+import { entriesApi, errorMessage, horsesApi, type HorseDto, type PagedResult, type RaceEntryDto } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
-import { Alert, Badge, Button, Card, Input, Spinner } from '../../components/ui';
+import { Alert, Badge, Button, Card, Spinner } from '../../components/ui';
 
 const PAGE_SIZE = 15;
 
@@ -19,12 +19,19 @@ export default function HorseSchedulePage() {
   const { user } = useAuth();
   const [data, setData] = useState<PagedResult<RaceEntryDto> | null>(null);
   const [horseId, setHorseId] = useState('');
+  const [horses, setHorses] = useState<HorseDto[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
 
   const isHorseOwner = user?.roles.includes('HorseOwner');
+
+  // Danh sách ngựa của chính chủ (Horse tự scope theo currentUser khi không phải Admin) - dùng để lọc theo tên thay vì gõ GUID tay.
+  useEffect(() => {
+    if (!isHorseOwner) return;
+    horsesApi.list({ includeInactive: true, pageSize: 100 }).then((r) => setHorses(r.items)).catch(() => {});
+  }, [isHorseOwner]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -76,8 +83,17 @@ export default function HorseSchedulePage() {
           <Card className="p-5">
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
-                <span className="text-xs font-medium text-ash">Lọc theo Horse ID (để trống để xem tất cả)</span>
-                <Input value={horseId} onChange={(e) => { setPage(1); setHorseId(e.target.value); }} placeholder="GUID của ngựa..." />
+                <span className="text-xs font-medium text-ash">Lọc theo tên ngựa</span>
+                <select
+                  value={horseId}
+                  onChange={(e) => { setPage(1); setHorseId(e.target.value); }}
+                  className="rounded-[var(--radius-input)] border border-bone bg-paper px-4 py-2.5 text-sm text-ink outline-none focus:border-flame focus:ring-2 focus:ring-flame/30"
+                >
+                  <option value="">-- Tất cả ngựa --</option>
+                  {horses.map((h) => (
+                    <option key={h.id} value={h.id}>{h.name}{!h.isActive ? ' (đã cho giải nghệ)' : ''}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </Card>
@@ -97,7 +113,7 @@ export default function HorseSchedulePage() {
                   <thead className="border-b border-parchment/60 bg-cream/60 text-xs uppercase tracking-wide text-ash">
                     <tr>
                       <Th>Cuộc đua</Th>
-                      <Th>Ngựa ID</Th>
+                      <Th>Ngựa</Th>
                       <Th>Đăng ký lúc</Th>
                       <Th>Trạng thái</Th>
                       <Th className="text-right">Hành động</Th>
@@ -114,7 +130,7 @@ export default function HorseSchedulePage() {
                               {e.raceName}
                             </Link>
                           </td>
-                          <td className="px-5 py-3 text-xs text-stone font-mono">{e.horseId.slice(0, 8)}...</td>
+                          <td className="px-5 py-3 text-stone">{e.horseName ?? `${e.horseId.slice(0, 8)}...`}</td>
                           <td className="px-5 py-3 text-xs text-stone">{new Date(e.registeredAtUtc).toLocaleString('vi-VN')}</td>
                           <td className="px-5 py-3">
                             <Badge tone={ENTRY_STATUS[e.status]?.tone ?? 'neutral'}>{ENTRY_STATUS[e.status]?.label ?? e.statusName}</Badge>
@@ -130,7 +146,7 @@ export default function HorseSchedulePage() {
                                 <span className="text-xs text-ash">Đã xác nhận</span>
                               )}
                               {!isApproved && !isConfirmed && (
-                                <span className="text-xs text-stone">—</span>
+                                <span className="text-xs text-stone">-</span>
                               )}
                             </div>
                           </td>

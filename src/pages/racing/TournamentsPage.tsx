@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { errorMessage, tournamentsApi, type PagedResult, type TournamentDto } from '../../lib/api';
 import { Alert, Badge, Button, Card, Input, Spinner } from '../../components/ui';
+import { useAuth } from '../../auth/AuthContext';
 
 const PAGE_SIZE = 12;
 
@@ -14,6 +15,7 @@ const STATUS_MAP: Record<number, { label: string; tone: 'neutral' | 'green' | 'r
 };
 
 export default function TournamentsPage() {
+  const { isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<PagedResult<TournamentDto> | null>(null);
   const [loading, setLoading] = useState(false);
@@ -52,9 +54,16 @@ export default function TournamentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Giải đấu</h1>
-        <p className="mt-1 text-stone">Danh sách các giải đua ngựa trong hệ thống.</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Giải đấu</h1>
+          <p className="mt-1 text-stone">Danh sách các giải đua ngựa trong hệ thống.</p>
+        </div>
+        {isAdmin && (
+          <Link to="/admin/tournaments/new">
+            <Button>+ Tạo giải đấu</Button>
+          </Link>
+        )}
       </div>
 
       <Card className="p-5">
@@ -100,7 +109,7 @@ export default function TournamentsPage() {
                   {t.description && <p className="mt-2 text-sm text-stone line-clamp-2">{t.description}</p>}
                   <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-ash">
                     {t.location && <span>{t.location}</span>}
-                    <span>{new Date(t.startDate).toLocaleDateString('vi-VN')} — {new Date(t.endDate).toLocaleDateString('vi-VN')}</span>
+                    <span>{new Date(t.startDate).toLocaleDateString('vi-VN')} - {new Date(t.endDate).toLocaleDateString('vi-VN')}</span>
                   </div>
                   {t.totalPrizePool != null && t.totalPrizePool > 0 && (
                     <div className="mt-3 text-sm font-semibold text-flame">

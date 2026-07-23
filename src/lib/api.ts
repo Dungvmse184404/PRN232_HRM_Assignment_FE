@@ -366,7 +366,7 @@ export type ViolationSeverity = 'Minor' | 'Major' | 'Disqualify';
 export type ResultStatus = 'Pending' | 'RefereeConfirmed' | 'Published';
 export type AssignmentStatus = 'Assigned' | 'Completed' | 'Cancelled';
 
-// DTOs — exactly mirror Application.Common.Models records
+// DTOs - exactly mirror Application.Common.Models records
 export interface RaceRoundDto {
   id: string;
   raceId: string;
@@ -409,7 +409,7 @@ export interface RaceEntryDto {
   isActive: boolean;
   registeredAtUtc: string;
   confirmedAtUtc: string | null;
-  // Enriched server-side via gRPC (Horse/Identity) — null if not resolved (see ADR-0006).
+  // Enriched server-side via gRPC (Horse/Identity) - null if not resolved (see ADR-0006).
   horseName: string | null;
   ownerEmail: string | null;
   ownerFullName: string | null;
@@ -434,6 +434,23 @@ export interface AssignedRaceDto {
   status: AssignmentStatus;
   assignedAtUtc: string;
   entries: AssignedRaceEntryDto[];
+  tournamentId: string;
+  tournamentName: string | null;
+}
+
+/** FR-27: một dòng kết quả (kèm Id thật của RaceResult) - dùng để ghi nhận/xác nhận, khác với RaceResultRowDto (chỉ để hiển thị công khai). */
+export interface RaceResultDto {
+  id: string;
+  raceId: string;
+  raceEntryId: string;
+  horseId: string;
+  jockeyId: string | null;
+  finishPosition: number | null;
+  finishTimeMs: number | null;
+  status: number;
+  statusName: string;
+  confirmedBy: string | null;
+  confirmedAtUtc: string | null;
 }
 
 export interface HorseInspectionDto {
@@ -480,6 +497,36 @@ export interface RaceReportDto {
   refereeUserId: string;
   summary: string | null;
   createdAtUtc: string;
+}
+
+/** Kết quả theo từng vòng đua + bảng tổng điểm/hạng cộng dồn của cuộc đua (round-results). */
+export interface RaceRoundResultRowDto {
+  raceEntryId: string;
+  horseId: string;
+  jockeyId: string | null;
+  finishPosition: number;
+  points: number;
+}
+
+export interface RoundResultGroupDto {
+  roundId: string;
+  roundNumber: number;
+  name: string | null;
+  rows: RaceRoundResultRowDto[];
+}
+
+export interface RaceEntryTotalDto {
+  raceEntryId: string;
+  horseId: string;
+  jockeyId: string | null;
+  totalPoints: number;
+  raceFinishPosition: number | null;
+}
+
+export interface RaceRoundResultsDto {
+  raceId: string;
+  rounds: RoundResultGroupDto[];
+  totals: RaceEntryTotalDto[];
 }
 
 export interface GetRacesParams {
@@ -542,10 +589,38 @@ export const racingApi = {
     const res = await api.post<{ message: string }>('/officiating/violations', payload);
     return res.data;
   },
+  // FR-27: Record finish positions for every Confirmed entry of a race, in one go (RaceReferee only)
+  async recordResults(
+    raceId: string,
+    results: { raceEntryId: string; finishPosition: number; finishTimeMs?: number }[],
+  ): Promise<{ message: string }> {
+    const res = await api.post<{ message: string }>('/results/record', { raceId, results });
+    return res.data;
+  },
+  // FR-27: List RaceResult rows (with real ids/status) for a race - referee/admin management view
+  async getRaceResultsForReferee(raceId: string): Promise<RaceResultDto[]> {
+    const res = await api.get<ApiResponse<RaceResultDto[]>>(`/results/races/${raceId}`);
+    return res.data.data!;
+  },
   // FR-27: Confirm a race result (Admin, RaceReferee)
   async confirmResult(resultId: string): Promise<{ message: string }> {
     const res = await api.put<{ message: string }>(`/results/${resultId}/confirm`, {});
     return res.data;
+  },
+  // Round-results: record/edit finish order for a single round (Admin, RaceReferee) - points auto-computed,
+  // then summed across rounds to derive the race-level rank.
+  async recordRoundResults(
+    raceId: string,
+    roundId: string,
+    results: { raceEntryId: string; finishPosition: number }[],
+  ): Promise<{ message: string }> {
+    const res = await api.post<{ message: string }>('/results/rounds/record', { raceId, roundId, results });
+    return res.data;
+  },
+  // Round-results: read per-round breakdown + cumulative totals/rank for a race
+  async getRoundResults(raceId: string): Promise<RaceRoundResultsDto> {
+    const res = await api.get<ApiResponse<RaceRoundResultsDto>>(`/results/races/${raceId}/rounds`);
+    return res.data.data!;
   },
   // FR-28: Create race report (Admin, RaceReferee)
   async createReport(raceId: string, summary?: string): Promise<{ message: string }> {
@@ -589,14 +664,25 @@ export interface AssignedRaceForJockeyDto {
 }
 
 export interface JockeyDto {
+  id: string;
   userId: string;
   fullName: string;
   email: string;
   phone: string | null;
+  licenseNo: string | null;
+  experienceYears: number | null;
+  weightKg: number | null;
   status: number;
   statusName: JockeyStatus;
   totalRaces: number;
+  totalWins: number;
   createdAtUtc: string;
+}
+
+export interface UpdateJockeyProfilePayload {
+  licenseNo?: string | null;
+  experienceYears?: number | null;
+  weightKg?: number | null;
 }
 
 export interface GetInvitationsParams {
@@ -618,11 +704,17 @@ export const jockeyApi = {
   async sendInvitation(payload: {
     raceId: string;
     horseId: string;
-    jockeyId: string;
+    jockeyUserId: string;
     message?: string | null;
   }): Promise<{ message: string }> {
     const res = await api.post<ApiResponse<{ message: string }>>('/racing/jockeys/invitations', payload);
     return res.data as unknown as { message: string };
+  },
+
+  // FR-16: Horse Owner tìm tài khoản Jockey theo tên/email/SĐT (gần đúng) để chọn gửi lời mời
+  async searchJockeys(params: { search?: string; pageNumber?: number; pageSize?: number }): Promise<PagedResult<UserDto>> {
+    const res = await api.get<ApiResponse<PagedResult<UserDto>>>('/identity/jockeys', { params });
+    return res.data.data!;
   },
 
   // FR-17: Horse Owner xem danh sách lời mời đã gửi (theo ngựa)
@@ -642,14 +734,10 @@ export const jockeyApi = {
     return res.data.data!;
   },
 
-  // FR-19: Jockey Accept / Decline lời mời
+  // FR-19: Jockey Accept / Decline lời mời. Accept sẽ tự động xác nhận luôn jockey vào cuộc đua
+  // (gộp FR-20 vào bước này - không còn bước Horse Owner xác nhận thêm lần nữa).
   async respondInvitation(id: string, response: 'Accepted' | 'Declined'): Promise<void> {
     await api.post(`/racing/jockeys/invitations/${id}/respond`, { response });
-  },
-
-  // FR-20: Horse Owner xác nhận jockey tham gia cuộc đua
-  async confirmJockey(id: string): Promise<void> {
-    await api.post(`/racing/jockeys/invitations/${id}/confirm`, {});
   },
 
   // FR-21: Jockey xem cuộc đua được phân công
@@ -668,6 +756,22 @@ export const jockeyApi = {
   async updateJockeyStatus(id: string, status: JockeyStatus): Promise<void> {
     await api.put(`/racing/jockeys/${id}/status`, { status });
   },
+
+  // FR-22: Admin cập nhật thông tin chi tiết jockey (License, kinh nghiệm, cân nặng)
+  async updateJockeyProfile(id: string, payload: UpdateJockeyProfilePayload): Promise<void> {
+    await api.put(`/racing/jockeys/${id}/profile`, payload);
+  },
+
+  // Jockey xem hồ sơ chi tiết của chính mình
+  async getMyProfile(): Promise<JockeyDto> {
+    const res = await api.get<ApiResponse<JockeyDto>>('/racing/jockeys/me/profile');
+    return res.data.data!;
+  },
+
+  // Jockey tự điền/cập nhật thông tin chi tiết của mình (License, kinh nghiệm, cân nặng)
+  async updateMyProfile(payload: UpdateJockeyProfilePayload): Promise<void> {
+    await api.put('/racing/jockeys/me/profile', payload);
+  },
 };
 
 export default api;
@@ -683,9 +787,19 @@ export interface TournamentDto {
   status: number;
   statusName: string;
   totalPrizePool: number | null;
+  maxSlots: number | null;
   createdBy: string;
   createdAtUtc: string;
   updatedAtUtc: string | null;
+}
+
+export interface TrackDto {
+  id: string;
+  name: string;
+  lengthM: number;
+  surfaceType: string | null;
+  location: string | null;
+  isActive: boolean;
 }
 
 export interface RaceRoundDto {
@@ -730,7 +844,7 @@ export interface RaceEntryDto {
   isActive: boolean;
   registeredAtUtc: string;
   confirmedAtUtc: string | null;
-  // Enriched server-side via gRPC (Horse/Identity) — null if not resolved (see ADR-0006).
+  // Enriched server-side via gRPC (Horse/Identity) - null if not resolved (see ADR-0006).
   horseName: string | null;
   ownerEmail: string | null;
   ownerFullName: string | null;
@@ -752,12 +866,23 @@ export const tournamentsApi = {
     const res = await racingApiClient.get<ApiResponse<TournamentDto>>(`/tournaments/${id}`);
     return res.data.data!;
   },
-  async create(data: { name: string; description?: string; location?: string; startDate: string; endDate: string }) {
+  async create(data: { name: string; description?: string; location?: string; startDate: string; endDate: string; maxSlots?: number }) {
     const res = await racingApiClient.post<ApiResponse<TournamentDto>>('/tournaments', data);
     return res.data.data!;
   },
-  async update(id: string, data: { name: string; description?: string; location?: string; startDate: string; endDate: string; totalPrizePool?: number }) {
+  async update(id: string, data: { name: string; description?: string; location?: string; startDate: string; endDate: string; totalPrizePool?: number; maxSlots?: number }) {
     const res = await racingApiClient.put<ApiResponse<TournamentDto>>(`/tournaments/${id}`, data);
+    return res.data.data!;
+  },
+};
+
+export const tracksApi = {
+  async list(params?: { includeInactive?: boolean }) {
+    const res = await racingApiClient.get<ApiResponse<TrackDto[]>>('/tracks', { params });
+    return res.data.data!;
+  },
+  async create(data: { name: string; lengthM: number; surfaceType?: string; location?: string }) {
+    const res = await racingApiClient.post<ApiResponse<TrackDto>>('/tracks', data);
     return res.data.data!;
   },
 };
@@ -784,6 +909,9 @@ export const racesApi = {
     distanceM: number; maxHorses: number; registrationDeadline?: string;
   }) {
     await racingApiClient.put(`/races/${id}`, data);
+  },
+  async changeStatus(id: string, status: RaceStatus) {
+    await racingApiClient.patch(`/races/${id}/status`, { status });
   },
 };
 

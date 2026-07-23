@@ -20,7 +20,7 @@ interface HomeNavDrawerProps {
   isSpectator: boolean;
 }
 
-/** Hamburger navigation drawer — portalled to document.body so it never nests inside the Hero's isolated stacking context. */
+/** Hamburger navigation drawer - portalled to document.body so it never nests inside the Hero's isolated stacking context. */
 export default function HomeNavDrawer({ open, onClose, isAuthenticated, isSpectator }: HomeNavDrawerProps) {
   const location = useLocation();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -29,7 +29,7 @@ export default function HomeNavDrawer({ open, onClose, isAuthenticated, isSpecta
   const items = getNavItems(isSpectator);
   const activeHash = location.pathname === '/' ? location.hash.replace('#', '') : '';
 
-  // Focus the close button synchronously on open — deliberately not gated behind
+  // Focus the close button synchronously on open - deliberately not gated behind
   // requestAnimationFrame, which browsers can throttle/skip on background tabs and would
   // otherwise leave the drawer focus-trapped but never actually focused.
   useEffect(() => {

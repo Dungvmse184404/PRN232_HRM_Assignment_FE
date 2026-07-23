@@ -14,6 +14,10 @@
   --color-driftwood: #8e8b87;
   --color-bone: #c0bbb6;
   --color-ash: #777571;
+  /* Always fully opaque - for floating panels (dropdowns, popovers) that must
+     never let content underneath show through, unlike --color-paper which is
+     translucent glass in the dashboard skin below. */
+  --color-panel: #ffffff;
 
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
@@ -40,7 +44,7 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   Dashboard skin — obsidian / crimson / gold, the same tone as the landing hero.
+   Dashboard skin - obsidian / crimson / gold, the same tone as the landing hero.
    Everything under AppLayout is wrapped in .app-shell, and Tailwind v4 compiles
    utilities down to var(--color-*), so re-pointing the tokens here re-skins every
    dashboard page without touching a single page component.
@@ -57,6 +61,7 @@ body {
   --color-parchment: rgba(243, 233, 216, 0.16);
   --color-bone: rgba(243, 233, 216, 0.2);
   --color-mist: rgba(243, 233, 216, 0.14);
+  --color-panel: #1f1811;
 
   --color-flame: #9c3226;
   --color-flame-dark: #c1503f;
@@ -98,7 +103,7 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   Popup shell — signed-in surfaces float as a glass panel over the landing
+   Popup shell - signed-in surfaces float as a glass panel over the landing
    hero instead of replacing it. See OverlayFrame.tsx.
    --------------------------------------------------------------------------- */
 @keyframes overlayScrimIn {

@@ -7,6 +7,16 @@ import {
   type PagedResult,
 } from '../../lib/api';
 import { Alert, Badge, Button, Card, Spinner } from '../../components/ui';
+import {
+  ClockIcon,
+  HorseshoeIcon,
+  LeafIcon,
+  PaletteIcon,
+  RefreshIcon,
+  RulerIcon,
+  ScaleIcon,
+  type IconComponent,
+} from '../../components/icons';
 
 const PAGE_SIZE = 10;
 
@@ -26,12 +36,12 @@ const STATUS_TONE: Record<InvitationStatus, 'neutral' | 'green' | 'red' | 'flame
   Confirmed: 'green',
 };
 
-function MetaRow({ icon, label, value }: { icon: string; label: string; value: string | null | undefined }) {
+function MetaRow({ icon: Icon, label, value }: { icon: IconComponent; label: string; value: string | null | undefined }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-base">{icon}</span>
+      <Icon className="h-4 w-4 shrink-0 text-ash" />
       <span className="text-xs text-ash">{label}:</span>
-      <span className="text-sm font-medium text-ink">{value || '—'}</span>
+      <span className="text-sm font-medium text-ink">{value || '-'}</span>
     </div>
   );
 }
@@ -68,7 +78,9 @@ export default function MyAssignedRacesPage() {
             Danh sách cuộc đua được phân công và thông tin ngựa bạn sẽ điều khiển (FR-21).
           </p>
         </div>
-        <Button variant="neutral" onClick={() => void load()}>🔄 Làm mới</Button>
+        <Button variant="neutral" onClick={() => void load()}>
+          <RefreshIcon className="h-4 w-4" /> Làm mới
+        </Button>
       </div>
 
       {error && <Alert kind="error">{error}</Alert>}
@@ -92,9 +104,10 @@ export default function MyAssignedRacesPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="text-xl font-bold text-ink">{race.raceName}</h3>
-                    <p className="mt-0.5 text-sm text-stone">
-                      🕐 {raceDate.toLocaleString('vi-VN')}
-                      {isPast && <span className="ml-2 text-xs text-ash italic">(Đã qua)</span>}
+                    <p className="mt-0.5 flex items-center gap-1.5 text-sm text-stone">
+                      <ClockIcon className="h-4 w-4 shrink-0 text-ash" />
+                      {raceDate.toLocaleString('vi-VN')}
+                      {isPast && <span className="ml-1 text-xs text-ash italic">(Đã qua)</span>}
                     </p>
                   </div>
                   <Badge tone={STATUS_TONE[race.status]}>{STATUS_LABEL[race.status]}</Badge>
@@ -103,17 +116,19 @@ export default function MyAssignedRacesPage() {
                 {/* Horse info */}
                 <div className="rounded-xl border border-parchment/60 bg-cream p-4">
                   <div className="mb-3 flex items-center gap-2">
-                    <span className="grid h-9 w-9 place-items-center rounded-full bg-marigold text-lg">🐴</span>
+                    <span className="grid h-9 w-9 place-items-center rounded-full bg-marigold text-ink">
+                      <HorseshoeIcon className="h-5 w-5" />
+                    </span>
                     <div>
                       <p className="font-semibold text-ink">{race.horseName ?? 'Chưa xác định'}</p>
                       <p className="text-xs text-ash">Thông tin ngựa điều khiển</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-y-2">
-                    <MetaRow icon="🎨" label="Màu sắc" value={race.horseColor} />
-                    <MetaRow icon="🌿" label="Giống" value={race.horseBreed} />
-                    <MetaRow icon="⚖️" label="Cân nặng" value={race.horseWeightKg != null ? `${race.horseWeightKg} kg` : null} />
-                    <MetaRow icon="📏" label="Chiều cao" value={race.horseHeightCm != null ? `${race.horseHeightCm} cm` : null} />
+                    <MetaRow icon={PaletteIcon} label="Màu sắc" value={race.horseColor} />
+                    <MetaRow icon={LeafIcon} label="Giống" value={race.horseBreed} />
+                    <MetaRow icon={ScaleIcon} label="Cân nặng" value={race.horseWeightKg != null ? `${race.horseWeightKg} kg` : null} />
+                    <MetaRow icon={RulerIcon} label="Chiều cao" value={race.horseHeightCm != null ? `${race.horseHeightCm} cm` : null} />
                   </div>
                 </div>
               </Card>

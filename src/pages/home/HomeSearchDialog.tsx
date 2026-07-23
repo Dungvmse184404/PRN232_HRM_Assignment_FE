@@ -10,7 +10,7 @@ interface HomeSearchDialogProps {
   isSpectator: boolean;
 }
 
-/** Quick navigation search — filters only the static nav list, no API calls. Portalled to document.body. */
+/** Quick navigation search - filters only the static nav list, no API calls. Portalled to document.body. */
 export default function HomeSearchDialog({ open, onClose, isAuthenticated, isSpectator }: HomeSearchDialogProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');

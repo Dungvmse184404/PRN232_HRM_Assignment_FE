@@ -50,7 +50,7 @@ export default function RaceReportPage() {
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-3xl font-semibold">Lập biên bản cuộc đua</h1>
-        <p className="mt-1 text-stone">Tạo biên bản tổng kết sau cuộc đua (FR-28).</p>
+        <p className="mt-1 text-stone">Tạo biên bản tổng kết sau cuộc đua.</p>
       </div>
 
       {loading ? (
@@ -74,7 +74,9 @@ export default function RaceReportPage() {
                 >
                   <option value="">-- Chọn cuộc đua --</option>
                   {assigned.map((a) => (
-                    <option key={a.raceId} value={a.raceId}>{a.raceName}</option>
+                    <option key={a.raceId} value={a.raceId}>
+                      {a.raceName}{a.tournamentName ? ` · ${a.tournamentName}` : ''}
+                    </option>
                   ))}
                 </select>
               </Field>
@@ -110,6 +112,7 @@ export default function RaceReportPage() {
                     onClick={() => { setSelectedRaceId(a.raceId); setSuccess(null); setError(null); }}
                   >
                     <div className="font-medium text-ink">{a.raceName}</div>
+                    {a.tournamentName && <div className="text-xs text-stone">{a.tournamentName}</div>}
                     <div className="mt-0.5 text-xs text-ash">
                       {new Date(a.scheduledStart).toLocaleString('vi-VN')} · {a.entries.length} ngựa
                     </div>

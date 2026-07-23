@@ -201,7 +201,7 @@ export default function AdminPredictionsPage() {
       <div>
         <h1 className="text-3xl font-semibold">Quản lý dự đoán</h1>
         <p className="mt-1 text-stone">
-          Tạo cấu hình, chấm kết quả và xem danh sách dự đoán (FR-33..36 Admin).
+          Tạo cấu hình, chấm kết quả và xem danh sách dự đoán.
         </p>
       </div>
 

@@ -7,6 +7,18 @@ import {
   type PagedResult,
 } from '../../lib/api';
 import { Alert, Badge, Button, Card, Spinner } from '../../components/ui';
+import {
+  CalendarIcon,
+  ChatIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  CloseIcon,
+  FlagIcon,
+  HorseshoeIcon,
+  RefreshIcon,
+  TrophyIcon,
+  UserIcon,
+} from '../../components/icons';
 
 const PAGE_SIZE = 10;
 
@@ -60,7 +72,7 @@ export default function MyInvitationsPage() {
     setActionMsg(null);
     try {
       await jockeyApi.respondInvitation(id, response);
-      setActionMsg(response === 'Accepted' ? '✅ Đã chấp nhận lời mời!' : '❌ Đã từ chối lời mời.');
+      setActionMsg(response === 'Accepted' ? 'Đã chấp nhận lời mời!' : 'Đã từ chối lời mời.');
       await load();
     } catch (err) {
       setError(errorMessage(err));
@@ -75,7 +87,7 @@ export default function MyInvitationsPage() {
       <div>
         <h1 className="text-3xl font-semibold">Lời mời điều khiển ngựa</h1>
         <p className="mt-1 text-stone">
-          Xem và phản hồi các lời mời từ chủ ngựa (FR-18 + FR-19).
+          Xem và phản hồi các lời mời từ chủ ngựa.
         </p>
       </div>
 
@@ -95,7 +107,9 @@ export default function MyInvitationsPage() {
               ))}
             </select>
           </div>
-          <Button variant="neutral" onClick={() => void load()}>🔄 Làm mới</Button>
+          <Button variant="neutral" onClick={() => void load()}>
+            <RefreshIcon className="h-4 w-4" /> Làm mới
+          </Button>
         </div>
       </Card>
 
@@ -119,18 +133,28 @@ export default function MyInvitationsPage() {
                 {/* Left info */}
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">🏇</span>
+                    <FlagIcon className="h-5 w-5 shrink-0 text-flame" />
                     <h3 className="text-lg font-semibold text-ink">{inv.raceName}</h3>
                     <Badge tone={STATUS_TONE[inv.statusName]}>{STATUS_LABEL[inv.statusName]}</Badge>
                   </div>
                   <div className="flex flex-wrap gap-4 text-sm text-stone">
-                    <span>🐴 Ngựa: <strong className="text-ink">{inv.horseName ?? '—'}</strong></span>
-                    <span>👤 Từ: <strong className="text-ink">{inv.jockeyName ?? 'Chủ ngựa'}</strong></span>
-                    <span>📅 Ngày gửi: <strong className="text-ink">{new Date(inv.sentAtUtc).toLocaleDateString('vi-VN')}</strong></span>
+                    <span className="flex items-center gap-1.5">
+                      <HorseshoeIcon className="h-4 w-4 shrink-0 text-ash" />
+                      Ngựa: <strong className="text-ink">{inv.horseName ?? '-'}</strong>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <UserIcon className="h-4 w-4 shrink-0 text-ash" />
+                      Từ: <strong className="text-ink">{inv.jockeyName ?? 'Chủ ngựa'}</strong>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <CalendarIcon className="h-4 w-4 shrink-0 text-ash" />
+                      Ngày gửi: <strong className="text-ink">{new Date(inv.sentAtUtc).toLocaleDateString('vi-VN')}</strong>
+                    </span>
                   </div>
                   {inv.message && (
-                    <div className="mt-2 rounded-xl border border-parchment/60 bg-cream p-3 text-sm text-stone italic">
-                      💬 "{inv.message}"
+                    <div className="mt-2 flex items-start gap-2 rounded-xl border border-parchment/60 bg-cream p-3 text-sm text-stone italic">
+                      <ChatIcon className="mt-0.5 h-4 w-4 shrink-0 text-ash" />
+                      <span>"{inv.message}"</span>
                     </div>
                   )}
                 </div>
@@ -142,7 +166,7 @@ export default function MyInvitationsPage() {
                       loading={acting === inv.id}
                       onClick={() => void respond(inv.id, 'Accepted')}
                     >
-                      ✅ Chấp nhận
+                      <CheckIcon className="h-4 w-4" /> Chấp nhận
                     </Button>
                     <Button
                       variant="danger"
@@ -153,20 +177,20 @@ export default function MyInvitationsPage() {
                         }
                       }}
                     >
-                      ❌ Từ chối
+                      <CloseIcon className="h-4 w-4" /> Từ chối
                     </Button>
                   </div>
                 )}
 
                 {inv.statusName === 'Accepted' && (
                   <div className="flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm text-green-700 border border-green-200">
-                    ✅ Đã chấp nhận – Chờ chủ ngựa xác nhận
+                    <CheckCircleIcon className="h-4 w-4 shrink-0" /> Đã chấp nhận – Chờ chủ ngựa xác nhận
                   </div>
                 )}
 
                 {inv.statusName === 'Confirmed' && (
                   <div className="flex items-center gap-2 rounded-full bg-marigold/30 px-4 py-2 text-sm text-ink border border-flame/30">
-                    🏆 Đã được xác nhận tham gia
+                    <TrophyIcon className="h-4 w-4 shrink-0 text-flame" /> Đã được xác nhận tham gia
                   </div>
                 )}
               </div>

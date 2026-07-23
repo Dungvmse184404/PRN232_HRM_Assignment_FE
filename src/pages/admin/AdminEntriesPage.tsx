@@ -134,7 +134,7 @@ export default function AdminEntriesPage() {
                       ) : e.status === 3 ? (
                         <span className="text-xs text-green-700">Đã xác nhận</span>
                       ) : (
-                        <span className="text-xs text-ash">—</span>
+                        <span className="text-xs text-ash">-</span>
                       )}
                     </td>
                   </tr>

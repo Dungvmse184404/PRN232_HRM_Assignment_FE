@@ -40,7 +40,7 @@ export default function HorseInspectionPage() {
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-3xl font-semibold">Kiểm tra ngựa</h1>
-        <p className="mt-1 text-stone">Ghi nhận kết quả kiểm tra sức khỏe ngựa trước đua (FR-24).</p>
+        <p className="mt-1 text-stone">Ghi nhận kết quả kiểm tra sức khỏe ngựa trước đua.</p>
       </div>
 
       {error && <Alert kind="error">{error}</Alert>}
@@ -71,7 +71,7 @@ export default function HorseInspectionPage() {
       {selected && (
         <Card className="overflow-hidden p-0">
           <div className="border-b border-parchment/60 px-5 py-4">
-            <h2 className="text-lg font-semibold">{selected.raceName} — Danh sách ngựa</h2>
+            <h2 className="text-lg font-semibold">{selected.raceName} - Danh sách ngựa</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -90,8 +90,11 @@ export default function HorseInspectionPage() {
                 )}
                 {selected.entries.map((e) => (
                   <tr key={e.raceEntryId} className="border-b border-parchment/40 last:border-0 hover:bg-cream/40">
-                    <td className="px-5 py-3 font-mono text-xs text-stone">{e.raceEntryId.slice(0, 8)}…</td>
-                    <td className="px-5 py-3 text-stone">{e.jockeyName ?? '—'}</td>
+                    <td className="px-5 py-3">
+                      <div className="font-medium text-ink">{e.horseName ?? '—'}</div>
+                      <div className="font-mono text-xs text-ash">{e.raceEntryId.slice(0, 8)}…</div>
+                    </td>
+                    <td className="px-5 py-3 text-stone">{e.jockeyName ?? '-'}</td>
                     <td className="px-5 py-3">
                       {e.inspectionResult === null ? (
                         <Badge tone="neutral">Chưa kiểm tra</Badge>
@@ -101,7 +104,7 @@ export default function HorseInspectionPage() {
                         <Badge tone="red">{RESULT_LABEL['Ineligible']}</Badge>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-xs text-stone">{e.inspectionNote ?? '—'}</td>
+                    <td className="px-5 py-3 text-xs text-stone">{e.inspectionNote ?? '-'}</td>
                     <td className="px-5 py-3">
                       <div className="flex justify-end">
                         <Button variant="neutral" onClick={() => setInspectFor(e)}>Ghi nhận</Button>

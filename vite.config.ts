@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 // Proxy /api through the API Gateway (localhost:5000) which routes to all
 // services: Identity (:5001), Racing (:5002), Horse (:5003), Prediction (:5004).
 // Each microservice runs on its own port. We proxy by path prefix so the
-// browser talks to the same origin as the dev server — no CORS setup needed.
+// browser talks to the same origin as the dev server - no CORS setup needed.
 //   /api/racing/*      -> Racing service    (5002)
 //   /api/officiating/* -> Racing service    (5002)
 //   /api/results/*     -> Racing service    (5002)

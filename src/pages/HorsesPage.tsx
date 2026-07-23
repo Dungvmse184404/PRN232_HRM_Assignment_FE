@@ -70,7 +70,7 @@ export default function HorsesPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">Quản lý ngựa</h1>
-          <p className="mt-1 text-stone">Tạo, cập nhật hồ sơ và giấy tờ ngựa của bạn (FR-06..08).</p>
+          <p className="mt-1 text-stone">Tạo, cập nhật hồ sơ và giấy tờ ngựa của bạn.</p>
         </div>
         <Button onClick={openCreate}>+ Thêm ngựa</Button>
       </div>
@@ -187,7 +187,7 @@ function Meta({ label, value }: { label: string; value: string | null | undefine
   return (
     <>
       <dt className="text-ash">{label}</dt>
-      <dd className="text-right font-medium text-ink">{value || '—'}</dd>
+      <dd className="text-right font-medium text-ink">{value || '-'}</dd>
     </>
   );
 }

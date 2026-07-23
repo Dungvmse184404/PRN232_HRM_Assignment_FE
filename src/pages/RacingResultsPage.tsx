@@ -31,6 +31,7 @@ function formatFinishTime(ms: number | null) {
 export default function RacingResultsPage() {
   const { user } = useAuth();
   const isAdmin = user?.roles.includes('Admin');
+  const isReferee = user?.roles.includes('RaceReferee');
   const isHorseOwner = user?.roles.includes('HorseOwner');
   const isJockey = user?.roles.includes('Jockey');
 
@@ -231,9 +232,9 @@ export default function RacingResultsPage() {
               ))}
             </select>
           </div>
-          {isAdmin && selectedRace && (
+          {(isAdmin || isReferee) && selectedRace && (
             <Button onClick={handlePublish} loading={publishing} disabled={raceDataLoading}>
-              Công bố kết quả
+              Chốt kết quả
             </Button>
           )}
         </div>

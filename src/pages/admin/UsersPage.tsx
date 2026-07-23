@@ -59,7 +59,7 @@ export default function UsersPage() {
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-3xl font-semibold">Quản lý tài khoản</h1>
-        <p className="mt-1 text-stone">Tìm kiếm, khóa/mở, xóa và phân quyền cho người dùng (FR-04, FR-05).</p>
+        <p className="mt-1 text-stone">Tìm kiếm, khóa/mở, xóa và phân quyền cho người dùng.</p>
       </div>
 
       <Card className="p-5">
@@ -119,7 +119,7 @@ export default function UsersPage() {
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
-                      {u.roleNames.length ? u.roleNames.map((r) => <Badge key={r}>{r}</Badge>) : <span className="text-ash">—</span>}
+                      {u.roleNames.length ? u.roleNames.map((r) => <Badge key={r}>{r}</Badge>) : <span className="text-ash">-</span>}
                     </div>
                   </td>
                   <td className="px-5 py-3">

@@ -256,11 +256,11 @@ export default function PredictionsPage() {
                       <td className="py-2.5 pr-4">
                         {p.reward ? (
                           <span className="text-xs">
-                            {p.reward.rewardType} — {p.reward.amount ?? '—'}{' '}
+                            {p.reward.rewardType} - {p.reward.amount ?? '-'}{' '}
                             <Badge tone={statusTone(p.reward.status)}>{p.reward.status}</Badge>
                           </span>
                         ) : (
-                          <span className="text-xs text-ash">—</span>
+                          <span className="text-xs text-ash">-</span>
                         )}
                       </td>
                       <td className="py-2.5 text-xs text-stone">
@@ -297,7 +297,7 @@ export default function PredictionsPage() {
                   {rewards.map((r) => (
                     <tr key={r.rewardId} className="border-b border-parchment/30">
                       <td className="py-2.5 pr-4">{r.rewardType}</td>
-                      <td className="py-2.5 pr-4">{r.amount ?? '—'}</td>
+                      <td className="py-2.5 pr-4">{r.amount ?? '-'}</td>
                       <td className="py-2.5 pr-4">
                         <Badge tone={statusTone(r.status)}>{r.status}</Badge>
                       </td>

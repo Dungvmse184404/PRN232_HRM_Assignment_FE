@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 
 /**
- * Cinematic Equestrian Editorial palette — same values as the approved Hero's
+ * Cinematic Equestrian Editorial palette - same values as the approved Hero's
  * THEME_VARS in HomePage.tsx, redeclared here so below-hero sections never need
  * to import from or modify the Hero file.
  */

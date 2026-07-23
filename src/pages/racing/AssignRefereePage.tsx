@@ -45,14 +45,14 @@ export default function AssignRefereePage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">Phân công Trọng tài</h1>
-          <p className="mt-1 text-stone">Gán trọng tài vào cuộc đua (FR-23).</p>
+          <p className="mt-1 text-stone">Gán trọng tài vào cuộc đua.</p>
         </div>
       </div>
 
       <Card className="p-5">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
-            <span className="text-xs font-medium text-ash">Tìm theo tên cuộc đua</span>
+            <span className="text-xs font-medium text-ash">Tìm theo tên cuộc đua / giải đấu</span>
             <Input
               value={search}
               onChange={(e) => { setPage(1); setSearch(e.target.value); }}
@@ -102,7 +102,7 @@ export default function AssignRefereePage() {
                         ? <Badge tone="green">Đã phân công</Badge>
                         : isAdmin
                           ? <Button variant="neutral" onClick={() => setAssignFor(r)}>Phân công</Button>
-                          : <span className="text-xs text-ash">—</span>}
+                          : <span className="text-xs text-ash">-</span>}
                     </div>
                   </td>
                 </tr>

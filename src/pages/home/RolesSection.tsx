@@ -10,7 +10,7 @@ interface RoleTab {
   heading: string;
   description: string;
   assetPath: string;
-  /** Left undefined when the real asset on disk isn't safe to publish yet — see RolesSection notes. */
+  /** Left undefined when the real asset on disk isn't safe to publish yet - see RolesSection notes. */
   src?: string;
   objectPosition?: string;
 }

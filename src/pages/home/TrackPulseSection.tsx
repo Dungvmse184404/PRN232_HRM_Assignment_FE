@@ -63,7 +63,7 @@ export default function TrackPulseSection() {
           <div className="mt-8 h-px w-full bg-[var(--parchment)]/10 lg:mt-10" />
         </div>
 
-        {/* Desktop mosaic — 6 media, asymmetric editorial grid */}
+        {/* Desktop mosaic - 6 media, asymmetric editorial grid */}
         <div className="hidden lg:grid lg:grid-cols-12 lg:gap-4">
           <div className="lg:col-span-8">
             <MosaicTile item={findMedia('start')} aspect="aspect-[2/1]" />
@@ -85,7 +85,7 @@ export default function TrackPulseSection() {
           </div>
         </div>
 
-        {/* Mobile stack — same 6 media, fixed order */}
+        {/* Mobile stack - same 6 media, fixed order */}
         <div className="flex flex-col gap-8 lg:hidden">
           <MosaicTile item={findMedia('start')} aspect="aspect-[4/3]" />
           <div className="flex gap-4">

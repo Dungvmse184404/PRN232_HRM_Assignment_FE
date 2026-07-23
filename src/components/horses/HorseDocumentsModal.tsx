@@ -47,8 +47,8 @@ export default function HorseDocumentsModal({
     <div className="fixed inset-0 z-20 grid place-items-center bg-ink/30 p-4 overflow-y-auto" onClick={onClose}>
       <Card className="my-8 w-full max-w-lg">
         <div onClick={(e) => e.stopPropagation()}>
-          <h3 className="text-xl font-semibold">Giấy tờ — {horse.name}</h3>
-          <p className="mt-1 text-sm text-stone">Pedigree, tiêm phòng, quyền sở hữu… (FR-08)</p>
+          <h3 className="text-xl font-semibold">Giấy tờ - {horse.name}</h3>
+          <p className="mt-1 text-sm text-stone">Pedigree, tiêm phòng, quyền sở hữu…</p>
 
           <ul className="mt-4 flex flex-col gap-2">
             {docs.length === 0 && <li className="text-sm text-ash">Chưa có giấy tờ nào.</li>}

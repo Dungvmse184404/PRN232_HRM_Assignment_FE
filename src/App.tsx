@@ -22,6 +22,7 @@ import SendInvitationPage from './pages/jockey/SendInvitationPage';
 import ManageInvitationsPage from './pages/jockey/ManageInvitationsPage';
 import MyInvitationsPage from './pages/jockey/MyInvitationsPage';
 import MyAssignedRacesPage from './pages/jockey/MyAssignedRacesPage';
+import MyProfilePage from './pages/jockey/MyProfilePage';
 
 // Racing pages (FR-09 → FR-15)
 import TournamentsPage from './pages/racing/TournamentsPage';
@@ -29,7 +30,9 @@ import TournamentDetailPage from './pages/racing/TournamentDetailPage';
 import RaceDetailPage from './pages/racing/RaceDetailPage';
 import AdminTournamentPage from './pages/racing/AdminTournamentPage';
 import AdminRacePage from './pages/racing/AdminRacePage';
+import AdminTrackPage from './pages/racing/AdminTrackPage';
 import HorseSchedulePage from './pages/racing/HorseSchedulePage';
+import RaceCalendarPage from './pages/racing/RaceCalendarPage';
 
 // Predition pages (FR-33 → FR-36)
 import PredictionsPage from './pages/PredictionsPage';
@@ -60,15 +63,18 @@ export default function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/horses" element={<HorsesPage />} />
 
-              {/* Racing — public views (FR-11/12) */}
+              {/* Lịch đua - mọi role, highlight cuộc đua liên quan */}
+              <Route path="/calendar" element={<RaceCalendarPage />} />
+
+              {/* Racing - public views (FR-11/12) */}
               <Route path="/tournaments" element={<TournamentsPage />} />
               <Route path="/tournaments/:id" element={<TournamentDetailPage />} />
               <Route path="/races/:id" element={<RaceDetailPage />} />
 
-              {/* Racing — Horse Owner (FR-14/15) */}
+              {/* Racing - Horse Owner (FR-14/15) */}
               <Route path="/my-horses/schedule" element={<HorseSchedulePage />} />
 
-              {/* Racing — results / officiating */}
+              {/* Racing - results / officiating */}
               <Route path="/racing-results" element={<RacingResultsPage />} />
               <Route path="/racing/assign-referee" element={<AssignRefereePage />} />
               <Route path="/racing/inspection" element={<HorseInspectionPage />} />
@@ -87,6 +93,7 @@ export default function App() {
               <Route element={<JockeyRoute />}>
                 <Route path="/jockey/my-invitations" element={<MyInvitationsPage />} />
                 <Route path="/jockey/my-races" element={<MyAssignedRacesPage />} />
+                <Route path="/jockey/my-profile" element={<MyProfilePage />} />
               </Route>
 
               {/* ---- FR-33 → FR-36: Prediction ---- */}
@@ -102,6 +109,7 @@ export default function App() {
                 <Route path="/admin/tournaments/:id/edit" element={<AdminTournamentPage />} />
                 <Route path="/admin/races/new" element={<AdminRacePage />} />
                 <Route path="/admin/races/:id/edit" element={<AdminRacePage />} />
+                <Route path="/admin/tracks/new" element={<AdminTrackPage />} />
               </Route>
             </Route>
           </Route>

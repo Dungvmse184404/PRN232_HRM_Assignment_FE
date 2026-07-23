@@ -85,14 +85,14 @@ export default function MonitorRacePage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">Giám sát cuộc đua</h1>
-          <p className="mt-1 text-stone">Theo dõi trạng thái và danh sách tham dự (FR-25).</p>
+          <p className="mt-1 text-stone">Theo dõi trạng thái và danh sách tham dự.</p>
         </div>
       </div>
 
       <Card className="p-5">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
-            <span className="text-xs font-medium text-ash">Tìm theo tên</span>
+            <span className="text-xs font-medium text-ash">Tìm theo tên cuộc đua / giải đấu</span>
             <Input
               value={search}
               onChange={(e) => { setPage(1); setSearch(e.target.value); }}
@@ -179,10 +179,10 @@ export default function MonitorRacePage() {
 
                 <dl className="mt-4 grid grid-cols-2 gap-y-2 text-sm sm:grid-cols-3">
                   <Meta label="Bắt đầu" value={new Date(selected.scheduledStart).toLocaleString('vi-VN')} />
-                  <Meta label="Kết thúc" value={selected.scheduledEnd ? new Date(selected.scheduledEnd).toLocaleString('vi-VN') : '—'} />
+                  <Meta label="Kết thúc" value={selected.scheduledEnd ? new Date(selected.scheduledEnd).toLocaleString('vi-VN') : '-'} />
                   <Meta label="Cự li" value={`${selected.distanceM} m`} />
                   <Meta label="Ngựa tham gia" value={`${selected.entryCount} / ${selected.maxHorses}`} />
-                  <Meta label="Hạn đăng ký" value={selected.registrationDeadline ? new Date(selected.registrationDeadline).toLocaleString('vi-VN') : '—'} />
+                  <Meta label="Hạn đăng ký" value={selected.registrationDeadline ? new Date(selected.registrationDeadline).toLocaleString('vi-VN') : '-'} />
                 </dl>
               </Card>
 
@@ -203,8 +203,8 @@ export default function MonitorRacePage() {
                         {selected.rounds.map((rd) => (
                           <tr key={rd.id} className="border-b border-parchment/40 last:border-0 hover:bg-cream/40">
                             <td className="px-5 py-3 font-medium">{rd.roundNumber}</td>
-                            <td className="px-5 py-3 text-stone">{rd.name ?? '—'}</td>
-                            <td className="px-5 py-3 text-xs text-stone">{rd.scheduledTime ? new Date(rd.scheduledTime).toLocaleString('vi-VN') : '—'}</td>
+                            <td className="px-5 py-3 text-stone">{rd.name ?? '-'}</td>
+                            <td className="px-5 py-3 text-xs text-stone">{rd.scheduledTime ? new Date(rd.scheduledTime).toLocaleString('vi-VN') : '-'}</td>
                             <td className="px-5 py-3">
                               <Badge tone={rd.statusName === 'Ongoing' ? 'flame' : rd.statusName === 'Finished' ? 'green' : 'neutral'}>
                                 {rd.statusName === 'Pending' ? 'Chờ' : rd.statusName === 'Ongoing' ? 'Đang chạy' : 'Hoàn thành'}
@@ -226,7 +226,7 @@ export default function MonitorRacePage() {
                       <thead className="border-b border-parchment/60 bg-cream/60 text-xs uppercase tracking-wide text-ash">
                         <tr>
                           <Th>Làn</Th>
-                          <Th>Mã ngựa</Th>
+                          <Th>Ngựa</Th>
                           <Th>Jockey</Th>
                           <Th>Trạng thái</Th>
                         </tr>
@@ -237,9 +237,9 @@ export default function MonitorRacePage() {
                         )}
                         {entries.items.map((e) => (
                           <tr key={e.id} className="border-b border-parchment/40 last:border-0 hover:bg-cream/40">
-                            <td className="px-5 py-3">{e.laneNo ?? '—'}</td>
-                            <td className="px-5 py-3 font-mono text-xs text-stone">{e.horseId.slice(0, 8)}…</td>
-                            <td className="px-5 py-3 text-stone">{e.jockeyId ? e.jockeyId.slice(0, 8) + '…' : '—'}</td>
+                            <td className="px-5 py-3">{e.laneNo ?? '-'}</td>
+                            <td className="px-5 py-3 text-stone">{e.horseName ?? `${e.horseId.slice(0, 8)}…`}</td>
+                            <td className="px-5 py-3 text-stone">{e.jockeyId ? e.jockeyId.slice(0, 8) + '…' : '-'}</td>
                             <td className="px-5 py-3">
                               <Badge tone={e.statusName === 'Confirmed' ? 'green' : e.statusName === 'Rejected' ? 'red' : 'neutral'}>
                                 {ENTRY_STATUS_LABEL[e.statusName] ?? e.statusName}

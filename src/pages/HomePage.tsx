@@ -14,7 +14,7 @@ import HomeNavDrawer from './home/HomeNavDrawer';
 import HomeSearchDialog from './home/HomeSearchDialog';
 import { scrollToAnchor, type AnchorId } from './home/navigation';
 
-/** Cinematic equestrian editorial hero — dark obsidian/crimson/gold theme, scoped to this file only. */
+/** Cinematic equestrian editorial hero - dark obsidian/crimson/gold theme, scoped to this file only. */
 const THEME_VARS: CSSProperties = {
   ['--obsidian' as string]: '#14100C',
   ['--obsidian-2' as string]: '#1F1811',
@@ -70,7 +70,7 @@ export default function HomePage() {
   useEffect(() => () => window.clearTimeout(launchTimer.current), []);
 
   /**
-   * Entering the system never leaves this page — the hero clears out and the
+   * Entering the system never leaves this page - the hero clears out and the
    * shell fades up as a glass popup over the very same backdrop. Any scroll
    * offset is unwound first so the popup does not open over a half-scrolled page.
    */
@@ -164,7 +164,7 @@ export default function HomePage() {
                 className="home-reveal mt-5 text-base leading-relaxed text-[var(--dust)] sm:text-lg"
                 style={{ animationDelay: '340ms' }}
               >
-                Quản lý lịch thi đấu, đăng ký ngựa và jockey, chấm kết quả và công bố bảng xếp hạng — tất
+                Quản lý lịch thi đấu, đăng ký ngựa và jockey, chấm kết quả và công bố bảng xếp hạng - tất
                 cả theo thời gian thực, cho mọi vai trò từ ban tổ chức đến khán giả.
               </p>
 
@@ -257,7 +257,7 @@ function SiteHeader({
     setSearchOpen(true);
   }, []);
 
-  // Centralized body scroll lock — single source of truth for both overlays, so closing
+  // Centralized body scroll lock - single source of truth for both overlays, so closing
   // one never clobbers a lock the other still needs.
   useEffect(() => {
     if (!drawerOpen && !searchOpen) return;
@@ -268,7 +268,7 @@ function SiteHeader({
     };
   }, [drawerOpen, searchOpen]);
 
-  // Ctrl+K / Cmd+K — attached once at header scope (not inside the search-only component,
+  // Ctrl+K / Cmd+K - attached once at header scope (not inside the search-only component,
   // which only mounts while open) so the shortcut works from anywhere on the page.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -317,7 +317,7 @@ function SiteHeader({
         </button>
       </div>
 
-      <Link to="/" className="shrink-0" aria-label="HRM — Trang chủ">
+      <Link to="/" className="shrink-0" aria-label="HRM - Trang chủ">
         <img
           src="/images/hr-logo-approved-exact.svg"
           alt="Horse Racing"
@@ -377,7 +377,7 @@ function TimingLine({ delay }: { delay: string }) {
   );
 }
 
-/** Primary floating editorial tag — compact photo card, not a dashboard panel. */
+/** Primary floating editorial tag - compact photo card, not a dashboard panel. */
 function RaceCard({ remainingMs, delay }: { remainingMs: number; delay: string }) {
   return (
     <div
@@ -415,7 +415,7 @@ function RaceCard({ remainingMs, delay }: { remainingMs: number; delay: string }
   );
 }
 
-/** Secondary floating tag — visibly smaller, offset from RaceCard, never competes with it. */
+/** Secondary floating tag - visibly smaller, offset from RaceCard, never competes with it. */
 function RankingCard({ delay }: { delay: string }) {
   return (
     <div

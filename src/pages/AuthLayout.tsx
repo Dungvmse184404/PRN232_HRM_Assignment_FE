@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom';
 import OverlayFrame, { useOverlayClose } from '../components/OverlayFrame';
 import { HorseshoeIcon } from '../components/icons';
 
-/** Centered shell for the login / register cards — same glass popup as the app shell. */
+/** Centered shell for the login / register cards - same glass popup as the app shell. */
 export default function AuthLayout() {
   const { closing, close } = useOverlayClose('/');
 

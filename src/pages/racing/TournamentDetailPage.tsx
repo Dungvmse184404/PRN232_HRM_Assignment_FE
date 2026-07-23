@@ -68,7 +68,7 @@ export default function TournamentDetailPage() {
         </div>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-stone">
           {tournament.location && <span>{tournament.location}</span>}
-          <span>{new Date(tournament.startDate).toLocaleDateString('vi-VN')} — {new Date(tournament.endDate).toLocaleDateString('vi-VN')}</span>
+          <span>{new Date(tournament.startDate).toLocaleDateString('vi-VN')} - {new Date(tournament.endDate).toLocaleDateString('vi-VN')}</span>
           {tournament.totalPrizePool != null && tournament.totalPrizePool > 0 && (
             <span className="font-semibold text-flame">{tournament.totalPrizePool.toLocaleString('vi-VN')} VND</span>
           )}
@@ -101,7 +101,7 @@ export default function TournamentDetailPage() {
                   </div>
                   <div className="mt-1 text-xs text-ash">
                     {new Date(r.scheduledStart).toLocaleString('vi-VN')}
-                    {r.scheduledEnd && ` — ${new Date(r.scheduledEnd).toLocaleString('vi-VN')}`}
+                    {r.scheduledEnd && ` - ${new Date(r.scheduledEnd).toLocaleString('vi-VN')}`}
                   </div>
                   {r.rounds.length > 0 && (
                     <div className="mt-2 text-xs text-stone">

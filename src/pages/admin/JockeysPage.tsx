@@ -7,6 +7,16 @@ import {
   type PagedResult,
 } from '../../lib/api';
 import { Alert, Badge, Button, Card, Input, Spinner } from '../../components/ui';
+import {
+  BanIcon,
+  CheckIcon,
+  DoorExitIcon,
+  FlagIcon,
+  IdCardIcon,
+  RefreshIcon,
+  type IconComponent,
+} from '../../components/icons';
+import JockeyProfileModal from '../../components/racing/JockeyProfileModal';
 
 const PAGE_SIZE = 15;
 
@@ -22,17 +32,17 @@ const STATUS_TONE: Record<JockeyStatus, 'neutral' | 'green' | 'red' | 'flame'> =
   Retired: 'neutral',
 };
 
-const NEXT_STATUS: Record<JockeyStatus, { label: string; value: JockeyStatus }[]> = {
+const NEXT_STATUS: Record<JockeyStatus, { label: string; value: JockeyStatus; icon: IconComponent }[]> = {
   Active: [
-    { label: '⛔ Đình chỉ', value: 'Suspended' },
-    { label: '🚪 Giải nghệ', value: 'Retired' },
+    { label: 'Đình chỉ', value: 'Suspended', icon: BanIcon },
+    { label: 'Giải nghệ', value: 'Retired', icon: DoorExitIcon },
   ],
   Suspended: [
-    { label: '✅ Kích hoạt', value: 'Active' },
-    { label: '🚪 Giải nghệ', value: 'Retired' },
+    { label: 'Kích hoạt', value: 'Active', icon: CheckIcon },
+    { label: 'Giải nghệ', value: 'Retired', icon: DoorExitIcon },
   ],
   Retired: [
-    { label: '✅ Kích hoạt', value: 'Active' },
+    { label: 'Kích hoạt', value: 'Active', icon: CheckIcon },
   ],
 };
 
@@ -46,6 +56,7 @@ export default function JockeysPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [editingJockey, setEditingJockey] = useState<JockeyDto | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -87,7 +98,7 @@ export default function JockeysPage() {
       <div>
         <h1 className="text-3xl font-semibold">Quản lý Jockey</h1>
         <p className="mt-1 text-stone">
-          Xem toàn bộ jockey và cập nhật trạng thái hoạt động (FR-22).
+          Xem toàn bộ jockey và cập nhật trạng thái hoạt động.
         </p>
       </div>
 
@@ -115,7 +126,9 @@ export default function JockeysPage() {
               ))}
             </select>
           </div>
-          <Button variant="neutral" onClick={() => void load()}>🔄 Làm mới</Button>
+          <Button variant="neutral" onClick={() => void load()}>
+            <RefreshIcon className="h-4 w-4" /> Làm mới
+          </Button>
         </div>
       </Card>
 
@@ -149,6 +162,7 @@ export default function JockeysPage() {
                   <th className="px-5 py-3.5 text-left font-semibold text-ash">Email</th>
                   <th className="px-5 py-3.5 text-left font-semibold text-ash">Điện thoại</th>
                   <th className="px-5 py-3.5 text-left font-semibold text-ash">Số cuộc đua</th>
+                  <th className="px-5 py-3.5 text-left font-semibold text-ash">Thông tin chi tiết</th>
                   <th className="px-5 py-3.5 text-left font-semibold text-ash">Trạng thái</th>
                   <th className="px-5 py-3.5 text-left font-semibold text-ash">Ngày tham gia</th>
                   <th className="px-5 py-3.5 text-left font-semibold text-ash">Hành động</th>
@@ -169,11 +183,18 @@ export default function JockeysPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4 text-stone">{j.email}</td>
-                    <td className="px-5 py-4 text-stone">{j.phone ?? '—'}</td>
+                    <td className="px-5 py-4 text-stone">{j.phone ?? '-'}</td>
                     <td className="px-5 py-4">
-                      <span className="inline-flex items-center rounded-full bg-cream px-3 py-0.5 text-xs font-medium text-stone border border-bone">
-                        🏇 {j.totalRaces} cuộc đua
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-cream px-3 py-0.5 text-xs font-medium text-stone border border-bone">
+                        <FlagIcon className="h-3.5 w-3.5 shrink-0 text-ash" /> {j.totalRaces} cuộc đua
                       </span>
+                    </td>
+                    <td className="px-5 py-4 text-stone">
+                      <div className="flex flex-col gap-0.5 text-xs">
+                        <span>License: {j.licenseNo ?? '-'}</span>
+                        <span>Kinh nghiệm: {j.experienceYears != null ? `${j.experienceYears} năm` : '-'}</span>
+                        <span>Cân nặng: {j.weightKg != null ? `${j.weightKg} kg` : '-'}</span>
+                      </div>
                     </td>
                     <td className="px-5 py-4">
                       <Badge tone={STATUS_TONE[j.statusName]}>{STATUS_LABEL[j.statusName]}</Badge>
@@ -183,6 +204,9 @@ export default function JockeysPage() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-1.5">
+                        <Button variant="neutral" onClick={() => setEditingJockey(j)}>
+                          <IdCardIcon className="h-4 w-4" /> Sửa hồ sơ
+                        </Button>
                         {NEXT_STATUS[j.statusName].map((action) => (
                           <Button
                             key={action.value}
@@ -194,7 +218,7 @@ export default function JockeysPage() {
                               }
                             }}
                           >
-                            {action.label}
+                            <action.icon className="h-4 w-4" /> {action.label}
                           </Button>
                         ))}
                       </div>
@@ -216,6 +240,19 @@ export default function JockeysPage() {
             <Button variant="neutral" disabled={!data.hasNext} onClick={() => setPage((p) => p + 1)}>Sau</Button>
           </div>
         </div>
+      )}
+
+      {editingJockey && (
+        <JockeyProfileModal
+          jockey={editingJockey}
+          onClose={() => setEditingJockey(null)}
+          onSaved={async () => {
+            setEditingJockey(null);
+            setActionMsg(`Đã cập nhật hồ sơ jockey "${editingJockey.fullName}".`);
+            await load();
+          }}
+          onError={(msg) => setError(msg)}
+        />
       )}
     </div>
   );

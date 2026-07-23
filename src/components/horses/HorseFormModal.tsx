@@ -1,8 +1,16 @@
 import { useState, type FormEvent } from 'react';
 import { horsesApi, errorMessage, type HorseDto, type HorseGender } from '../../lib/api';
-import { Button, Card, Field, Input } from '../ui';
+import { Button, Card, Field, Input, SuggestInput } from '../ui';
 
 const GENDER_LABEL: Record<HorseGender, string> = { Male: 'Đực', Female: 'Cái', Gelding: 'Thiến' };
+
+const BREED_OPTIONS = [
+  'Thoroughbred', 'Ả Rập (Arabian)', 'Anglo-Arab', 'Quarter Horse', 'Akhal-Teke',
+  'Andalusian', 'Mông Cổ', 'Ngựa Việt (nội)', 'Standardbred', 'Warmblood',
+];
+const COLOR_OPTIONS = [
+  'Hạt dẻ', 'Đen', 'Nâu', 'Xám', 'Trắng', 'Vàng kim', 'Loang', 'Nâu sẫm', 'Bạc', 'Vện',
+];
 
 export default function HorseFormModal({
   horse,
@@ -83,10 +91,20 @@ export default function HorseFormModal({
             </Field>
 
             <Field label="Giống">
-              <Input value={form.breed} onChange={(e) => set('breed', e.target.value)} placeholder="Arabian…" />
+              <SuggestInput
+                value={form.breed}
+                onChange={(v) => set('breed', v)}
+                options={BREED_OPTIONS}
+                placeholder="Arabian…"
+              />
             </Field>
             <Field label="Màu lông">
-              <Input value={form.color} onChange={(e) => set('color', e.target.value)} placeholder="Hạt dẻ…" />
+              <SuggestInput
+                value={form.color}
+                onChange={(v) => set('color', v)}
+                options={COLOR_OPTIONS}
+                placeholder="Hạt dẻ…"
+              />
             </Field>
 
             <Field label="Cân nặng (kg)">

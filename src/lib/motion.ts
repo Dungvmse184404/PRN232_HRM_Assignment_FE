@@ -8,7 +8,7 @@ export function prefersReducedMotion() {
  * Brings the window back to the top, then runs `done`.
  *
  * Smooth scrolling has no completion event, so we poll until the offset settles
- * (or bail out) — otherwise the launch animation would start mid-scroll and the
+ * (or bail out) - otherwise the launch animation would start mid-scroll and the
  * popup would fade in over a half-scrolled hero.
  */
 export function scrollToTop(done: () => void) {

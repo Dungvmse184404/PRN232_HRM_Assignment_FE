@@ -54,6 +54,7 @@ export default function AppLayout() {
       title: 'Chung',
       items: [
         { to: '/dashboard', label: 'Tổng quan', icon: HomeIcon, end: true },
+        { to: '/calendar', label: 'Lịch đua', icon: CalendarIcon },
         { to: '/horses', label: 'Ngựa của tôi', icon: HorseshoeIcon },
         { to: '/racing-results', label: 'Kết quả cuộc đua', icon: TrophyIcon },
         ...(isSpectator ? [{ to: '/predictions', label: 'Dự đoán', icon: SparklesIcon }] : []),
@@ -81,6 +82,7 @@ export default function AppLayout() {
             items: [
               { to: '/jockey/my-invitations', label: 'Lời mời của tôi', icon: InboxIcon },
               { to: '/jockey/my-races', label: 'Cuộc đua của tôi', icon: FlagIcon },
+              { to: '/jockey/my-profile', label: 'Hồ sơ của tôi', icon: IdCardIcon },
             ],
           },
         ]
@@ -185,7 +187,7 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      {/* Main column — scrolls inside the panel, never the page behind it */}
+      {/* Main column - scrolls inside the panel, never the page behind it */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-3 border-b border-parchment/60 px-4 py-3 md:hidden">
           <button

@@ -8,7 +8,7 @@ export default function AdminTournamentPage() {
   const navigate = useNavigate();
   const isEdit = !!id;
 
-  const [form, setForm] = useState({ name: '', description: '', location: '', startDate: '', endDate: '', totalPrizePool: '' });
+  const [form, setForm] = useState({ name: '', description: '', location: '', startDate: '', endDate: '', totalPrizePool: '', maxSlots: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetching, setFetching] = useState(isEdit);
@@ -25,6 +25,7 @@ export default function AdminTournamentPage() {
           startDate: t.startDate.split('T')[0],
           endDate: t.endDate.split('T')[0],
           totalPrizePool: t.totalPrizePool?.toString() ?? '',
+          maxSlots: t.maxSlots?.toString() ?? '',
         });
       } catch (err) {
         setError(errorMessage(err));
@@ -46,6 +47,7 @@ export default function AdminTournamentPage() {
         startDate: form.startDate,
         endDate: form.endDate,
         totalPrizePool: form.totalPrizePool ? Number(form.totalPrizePool) : undefined,
+        maxSlots: form.maxSlots ? Number(form.maxSlots) : undefined,
       };
       if (isEdit) {
         await tournamentsApi.update(id!, payload as any);
@@ -88,6 +90,9 @@ export default function AdminTournamentPage() {
           </div>
           <Field label="Tổng tiền thưởng (VND)">
             <Input type="number" value={form.totalPrizePool} onChange={(e) => setForm((f) => ({ ...f, totalPrizePool: e.target.value }))} placeholder="100000000" />
+          </Field>
+          <Field label="Số lượng slot tối đa">
+            <Input type="number" min={1} value={form.maxSlots} onChange={(e) => setForm((f) => ({ ...f, maxSlots: e.target.value }))} placeholder="Không giới hạn nếu để trống" />
           </Field>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="neutral" type="button" onClick={() => navigate(-1)}>Hủy</Button>

@@ -47,7 +47,7 @@ export default function ViolationPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">Ghi nhận vi phạm</h1>
-          <p className="mt-1 text-stone">Ghi nhận vi phạm trong cuộc đua (FR-26).</p>
+          <p className="mt-1 text-stone">Ghi nhận vi phạm trong cuộc đua.</p>
         </div>
         {selectedRaceId && (
           <Button onClick={() => setModalOpen(true)}>+ Ghi vi phạm</Button>
@@ -94,7 +94,7 @@ export default function ViolationPage() {
         <Card className="overflow-hidden p-0">
           <div className="border-b border-parchment/60 px-5 py-3">
             <span className="font-semibold">{selectedAssigned.raceName}</span>
-            <span className="ml-2 text-xs text-ash">— vi phạm đã ghi nhận qua phiên làm việc này</span>
+            <span className="ml-2 text-xs text-ash">- vi phạm đã ghi nhận qua phiên làm việc này</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
