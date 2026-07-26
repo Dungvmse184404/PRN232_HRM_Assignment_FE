@@ -126,6 +126,25 @@ export function errorMessage(err: unknown, fallback = 'Đã xảy ra lỗi.'): s
   return fallback;
 }
 
+/**
+ * Nhóm 1 danh sách cuộc đua (đã sort theo thời gian) thành các cụm liên tiếp theo giải đấu, để
+ * hiển thị "catalog theo giải" (gap lớn hơn giữa 2 giải, gap nhỏ giữa các cuộc đua cùng 1 giải)
+ * thay vì trộn lẫn. Thứ tự các cụm = thời gian của cuộc đua sớm nhất trong cụm đó.
+ */
+export function groupByTournament<T extends { tournamentId: string; scheduledStart: string }>(
+  items: T[],
+): T[][] {
+  const map = new Map<string, T[]>();
+  for (const item of items) {
+    const list = map.get(item.tournamentId);
+    if (list) list.push(item);
+    else map.set(item.tournamentId, [item]);
+  }
+  return [...map.values()].sort(
+    (a, b) => new Date(a[0].scheduledStart).getTime() - new Date(b[0].scheduledStart).getTime(),
+  );
+}
+
 // ---- Typed API calls ----
 export interface RegisterPayload {
   email: string;
@@ -202,6 +221,9 @@ export interface HorseDto {
   createdAtUtc: string;
   updatedAtUtc: string | null;
   documents: HorseDocumentDto[];
+  // Enriched server-side qua gRPC (Identity) - chỉ có giá trị khi Admin gọi kèm all=true (xem ADR-0006).
+  ownerEmail: string | null;
+  ownerFullName: string | null;
 }
 
 export interface HorsePayload {
@@ -633,34 +655,51 @@ export const racingApi = {
 export type InvitationStatus = 'Pending' | 'Accepted' | 'Declined' | 'Cancelled' | 'Confirmed';
 export type JockeyStatus = 'Active' | 'Suspended' | 'Retired';
 
+// Khớp với JockeyInvitationDto bên backend (GetMyInvitations/GetInvitationsByHorse đều trả DTO này -
+// trước đây field đặt sai tên (sentAtUtc/jockeyName) khiến "Ngày gửi" luôn ra Invalid Date).
 export interface InvitationDto {
   id: string;
   raceId: string;
   raceName: string;
   horseId: string;
+  ownerUserId: string;
   horseName: string | null;
   jockeyId: string;
-  jockeyName: string | null;
+  jockeyFullName: string;
   message: string | null;
   status: number;
   statusName: InvitationStatus;
-  sentAtUtc: string;
+  isActive: boolean;
+  invitedAtUtc: string;
   respondedAtUtc: string | null;
-  confirmedAtUtc: string | null;
+  raceScheduledStart: string;
+  // Để nhóm theo mùa giải (tournament) trên FE.
+  tournamentId: string;
+  tournamentName: string;
 }
 
+// Khớp với JockeyInvitationDto bên backend (GetMyAssignedRaces giờ trả về invitation đã Confirmed,
+// thay vì RaceEntryDto cũ hoàn toàn khác field - đó là lý do tab "Cuộc đua của tôi" trước đây trống/lỗi).
 export interface AssignedRaceForJockeyDto {
-  invitationId: string;
+  id: string;
   raceId: string;
   raceName: string;
-  scheduledStart: string;
+  raceScheduledStart: string;
   horseId: string;
+  ownerUserId: string;
+  jockeyId: string;
+  jockeyFullName: string;
+  status: number;
+  statusName: InvitationStatus;
+  message: string | null;
+  isActive: boolean;
+  invitedAtUtc: string;
+  respondedAtUtc: string | null;
+  // Enriched server-side qua gRPC HorseLookup - null nếu chưa resolve được (xem ADR-0006).
   horseName: string | null;
-  horseBreed: string | null;
-  horseColor: string | null;
-  horseWeightKg: number | null;
-  horseHeightCm: number | null;
-  status: InvitationStatus;
+  // Để nhóm theo mùa giải (tournament) trên FE.
+  tournamentId: string;
+  tournamentName: string;
 }
 
 export interface JockeyDto {

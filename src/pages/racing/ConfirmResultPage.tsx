@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   errorMessage,
@@ -9,7 +9,8 @@ import {
   type RaceRoundResultsDto,
   type PagedResult,
 } from '../../lib/api';
-import { Alert, Badge, Button, Card, Input, Spinner } from '../../components/ui';
+import { Alert, Badge, Button, Card, Input, Spinner, useSortableRanks } from '../../components/ui';
+import { GripIcon } from '../../components/icons';
 import ConfirmResultModal from '../../components/racing/ConfirmResultModal';
 
 const PAGE_SIZE = 10;
@@ -50,13 +51,17 @@ export default function ConfirmResultPage() {
   const [raceResults, setRaceResults] = useState<RaceResultDto[]>([]);
   // Các lượt đăng ký đã Confirmed - chỉ cần khi CHƯA có kết quả (để ghi nhận lần đầu).
   const [entries, setEntries] = useState<RaceEntryDto[]>([]);
-  const [ranks, setRanks] = useState<Record<string, string>>({});
   const [times, setTimes] = useState<Record<string, string>>({});
+  const entryById = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries]);
+
+  // Xếp hạng kéo-thả cho form "ghi nhận vị trí về đích" (không rounds, lần đầu - luôn trống).
+  const finalSortable = useSortableRanks();
 
   // Kết quả theo vòng đua (khi cuộc đua có rounds) + form nhập cho vòng đang chọn.
   const [roundResultsData, setRoundResultsData] = useState<RaceRoundResultsDto | null>(null);
   const [activeRoundId, setActiveRoundId] = useState('');
-  const [roundRanks, setRoundRanks] = useState<Record<string, string>>({});
+  // Xếp hạng kéo-thả cho form nhập theo vòng - prefill từ dữ liệu đã ghi nhận (nếu có) để sửa lại.
+  const roundSortable = useSortableRanks();
   const [roundSubmitting, setRoundSubmitting] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -94,7 +99,10 @@ export default function ConfirmResultPage() {
       // Danh sách đăng ký đã Confirmed - cần cho form nhập tay (không rounds) VÀ form nhập theo vòng.
       const entriesData = await racingApi.listEntries({ raceId, status: 'Confirmed', pageSize: 50 });
       setEntries(entriesData.items);
-      if (results.length === 0) { setRanks({}); setTimes({}); }
+      if (results.length === 0) {
+        finalSortable.reset(entriesData.items.map((e) => e.id));
+        setTimes({});
+      }
 
       if (hasRounds) {
         setRoundResultsData(await racingApi.getRoundResults(raceId));
@@ -126,35 +134,31 @@ export default function ConfirmResultPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRaceId, sortedRounds.length]);
 
-  // Prefill form nhập của vòng đang chọn từ dữ liệu đã ghi nhận (nếu có), để referee/admin có thể SỬA.
+  // Prefill form nhập của vòng đang chọn từ dữ liệu đã ghi nhận (nếu có), để referee/admin có thể SỬA
+  // (mỗi ngựa đã có vị trí ghi nhận trước đó -> coi như đang "ghim" tại đúng hạng đó).
   useEffect(() => {
-    if (!activeRoundId) { setRoundRanks({}); return; }
+    const ids = entries.map((e) => e.id);
+    if (!activeRoundId) { roundSortable.reset(ids); return; }
     const group = roundResultsData?.rounds.find((g) => g.roundId === activeRoundId);
-    const next: Record<string, string> = {};
-    for (const row of group?.rows ?? []) next[row.raceEntryId] = String(row.finishPosition);
-    setRoundRanks(next);
-  }, [activeRoundId, roundResultsData]);
+    const initial: Record<string, number> = {};
+    for (const row of group?.rows ?? []) initial[row.raceEntryId] = row.finishPosition;
+    roundSortable.reset(ids, initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRoundId, roundResultsData, entries]);
 
   async function onSubmitResults(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    if (entries.length === 0) return;
 
-    const items = entries.map((en) => ({
-      raceEntryId: en.id,
-      finishPosition: Number(ranks[en.id]),
-      finishTimeMs: times[en.id] ? Number(times[en.id]) : undefined,
+    // Hạng = vị trí trong danh sách đã kéo-xếp (finalSortable.order), nên luôn là 1 hoán vị hợp lệ,
+    // không thể thiếu/trùng vị trí như khi nhập tay tự do trước đây.
+    const items = finalSortable.order.map((id, idx) => ({
+      raceEntryId: id,
+      finishPosition: idx + 1,
+      finishTimeMs: times[id] ? Number(times[id]) : undefined,
     }));
-
-    if (items.some((i) => !i.finishPosition || i.finishPosition < 1)) {
-      setError('Vui lòng nhập vị trí về đích (số nguyên dương) cho tất cả các ngựa.');
-      return;
-    }
-    const positions = items.map((i) => i.finishPosition);
-    if (new Set(positions).size !== positions.length) {
-      setError('Vị trí về đích không được trùng nhau.');
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -172,22 +176,12 @@ export default function ConfirmResultPage() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    if (!activeRoundId) return;
+    if (!activeRoundId || entries.length === 0) return;
 
-    const items = entries.map((en) => ({
-      raceEntryId: en.id,
-      finishPosition: Number(roundRanks[en.id]),
+    const items = roundSortable.order.map((id, idx) => ({
+      raceEntryId: id,
+      finishPosition: idx + 1,
     }));
-
-    if (items.some((i) => !i.finishPosition || i.finishPosition < 1)) {
-      setError('Vui lòng nhập vị trí về đích (số nguyên dương) cho tất cả các ngựa trong vòng này.');
-      return;
-    }
-    const positions = items.map((i) => i.finishPosition);
-    if (new Set(positions).size !== positions.length) {
-      setError('Vị trí về đích trong vòng không được trùng nhau.');
-      return;
-    }
 
     setRoundSubmitting(true);
     try {
@@ -285,6 +279,7 @@ export default function ConfirmResultPage() {
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-parchment/60 bg-cream/60 text-xs uppercase tracking-wide text-ash">
                       <tr>
+                        <Th className="w-8" />
                         <Th>Làn</Th>
                         <Th>Ngựa</Th>
                         <Th>Mã jockey</Th>
@@ -294,29 +289,50 @@ export default function ConfirmResultPage() {
                     </thead>
                     <tbody>
                       {entries.length === 0 && (
-                        <tr><td colSpan={5} className="px-5 py-10 text-center text-stone">Chưa có lượt đăng ký nào ở trạng thái Confirmed cho cuộc đua này.</td></tr>
+                        <tr><td colSpan={6} className="px-5 py-10 text-center text-stone">Chưa có lượt đăng ký nào ở trạng thái Confirmed cho cuộc đua này.</td></tr>
                       )}
-                      {entries.map((en) => {
-                        const pos = roundRanks[en.id] ? Number(roundRanks[en.id]) : null;
+                      {roundSortable.order.map((id, index) => {
+                        const en = entryById.get(id);
+                        if (!en) return null;
+                        const rank = index + 1;
+                        const pinned = id in roundSortable.pins;
+                        const drag = roundSortable.dragHandlersFor(id, index);
                         return (
-                          <tr key={en.id} className="border-b border-parchment/40 last:border-0">
+                          <tr
+                            key={id}
+                            ref={drag.ref}
+                            draggable={drag.draggable}
+                            onDragStart={drag.onDragStart}
+                            onDragOver={drag.onDragOver}
+                            onDragEnd={drag.onDragEnd}
+                            onDrop={drag.onDrop}
+                            className={`border-b border-parchment/40 last:border-0 transition ${drag.isDragging ? 'opacity-30' : ''}`}
+                          >
+                            <td className="px-3 py-3 text-ash">
+                              <GripIcon className="h-4 w-4 cursor-grab active:cursor-grabbing" />
+                            </td>
                             <td className="px-5 py-3">{en.laneNo ?? '-'}</td>
                             <td className="px-5 py-3">
                               <div className="font-medium text-ink">{en.horseName ?? `Ngựa ${shortId(en.horseId)}`}</div>
                             </td>
                             <td className="px-5 py-3 font-mono text-xs text-stone">{en.jockeyId ? shortId(en.jockeyId) : '-'}</td>
                             <td className="px-5 py-3">
-                              <input
-                                type="number"
-                                min={1}
-                                required
-                                value={roundRanks[en.id] ?? ''}
-                                onChange={(e) => setRoundRanks((prev) => ({ ...prev, [en.id]: e.target.value }))}
-                                className="w-20 rounded-[var(--radius-input)] border border-bone bg-paper px-3 py-2 text-sm outline-none focus:border-flame"
-                                placeholder="1"
-                              />
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={entries.length}
+                                  value={pinned ? roundSortable.pins[id] : ''}
+                                  onChange={(e) => roundSortable.setManualRank(id, e.target.value)}
+                                  placeholder={String(rank)}
+                                  className="w-16 rounded-[var(--radius-input)] border border-bone bg-paper px-3 py-2 text-sm outline-none focus:border-flame"
+                                />
+                                {pinned && (
+                                  <span title="Đã ghim thủ công ở hạng này - kéo hàng để bỏ ghim" className="text-xs text-flame">📌</span>
+                                )}
+                              </div>
                             </td>
-                            <td className="px-5 py-3 text-right text-stone">{pos ? ROUND_POINTS[pos] ?? 0 : '-'}</td>
+                            <td className="px-5 py-3 text-right text-stone">{ROUND_POINTS[rank] ?? 0}</td>
                           </tr>
                         );
                       })}
@@ -418,6 +434,7 @@ export default function ConfirmResultPage() {
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-parchment/60 bg-cream/60 text-xs uppercase tracking-wide text-ash">
                   <tr>
+                    <Th className="w-8" />
                     <Th>Làn</Th>
                     <Th>Ngựa</Th>
                     <Th>Mã jockey</Th>
@@ -427,38 +444,62 @@ export default function ConfirmResultPage() {
                 </thead>
                 <tbody>
                   {entries.length === 0 && (
-                    <tr><td colSpan={5} className="px-5 py-10 text-center text-stone">Chưa có lượt đăng ký nào ở trạng thái Confirmed cho cuộc đua này.</td></tr>
+                    <tr><td colSpan={6} className="px-5 py-10 text-center text-stone">Chưa có lượt đăng ký nào ở trạng thái Confirmed cho cuộc đua này.</td></tr>
                   )}
-                  {entries.map((en) => (
-                    <tr key={en.id} className="border-b border-parchment/40 last:border-0">
-                      <td className="px-5 py-3">{en.laneNo ?? '-'}</td>
-                      <td className="px-5 py-3">
-                        <div className="font-medium text-ink">{en.horseName ?? `Ngựa ${shortId(en.horseId)}`}</div>
-                      </td>
-                      <td className="px-5 py-3 font-mono text-xs text-stone">{en.jockeyId ? shortId(en.jockeyId) : '-'}</td>
-                      <td className="px-5 py-3">
-                        <input
-                          type="number"
-                          min={1}
-                          required
-                          value={ranks[en.id] ?? ''}
-                          onChange={(e) => setRanks((prev) => ({ ...prev, [en.id]: e.target.value }))}
-                          className="w-20 rounded-[var(--radius-input)] border border-bone bg-paper px-3 py-2 text-sm outline-none focus:border-flame"
-                          placeholder="1"
-                        />
-                      </td>
-                      <td className="px-5 py-3">
-                        <input
-                          type="number"
-                          min={1}
-                          value={times[en.id] ?? ''}
-                          onChange={(e) => setTimes((prev) => ({ ...prev, [en.id]: e.target.value }))}
-                          className="w-28 rounded-[var(--radius-input)] border border-bone bg-paper px-3 py-2 text-sm outline-none focus:border-flame"
-                          placeholder="Tuỳ chọn"
-                        />
-                      </td>
-                    </tr>
-                  ))}
+                  {finalSortable.order.map((id, index) => {
+                    const en = entryById.get(id);
+                    if (!en) return null;
+                    const rank = index + 1;
+                    const pinned = id in finalSortable.pins;
+                    const drag = finalSortable.dragHandlersFor(id, index);
+                    return (
+                      <tr
+                        key={id}
+                        ref={drag.ref}
+                        draggable={drag.draggable}
+                        onDragStart={drag.onDragStart}
+                        onDragOver={drag.onDragOver}
+                        onDragEnd={drag.onDragEnd}
+                        onDrop={drag.onDrop}
+                        className={`border-b border-parchment/40 last:border-0 transition ${drag.isDragging ? 'opacity-30' : ''}`}
+                      >
+                        <td className="px-3 py-3 text-ash">
+                          <GripIcon className="h-4 w-4 cursor-grab active:cursor-grabbing" />
+                        </td>
+                        <td className="px-5 py-3">{en.laneNo ?? '-'}</td>
+                        <td className="px-5 py-3">
+                          <div className="font-medium text-ink">{en.horseName ?? `Ngựa ${shortId(en.horseId)}`}</div>
+                        </td>
+                        <td className="px-5 py-3 font-mono text-xs text-stone">{en.jockeyId ? shortId(en.jockeyId) : '-'}</td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              min={1}
+                              max={entries.length}
+                              value={pinned ? finalSortable.pins[id] : ''}
+                              onChange={(e) => finalSortable.setManualRank(id, e.target.value)}
+                              placeholder={String(rank)}
+                              className="w-16 rounded-[var(--radius-input)] border border-bone bg-paper px-3 py-2 text-sm outline-none focus:border-flame"
+                            />
+                            {pinned && (
+                              <span title="Đã ghim thủ công ở hạng này - kéo hàng để bỏ ghim" className="text-xs text-flame">📌</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3">
+                          <input
+                            type="number"
+                            min={1}
+                            value={times[id] ?? ''}
+                            onChange={(e) => setTimes((prev) => ({ ...prev, [id]: e.target.value }))}
+                            className="w-28 rounded-[var(--radius-input)] border border-bone bg-paper px-3 py-2 text-sm outline-none focus:border-flame"
+                            placeholder="Tuỳ chọn"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -495,6 +536,6 @@ export default function ConfirmResultPage() {
   );
 }
 
-function Th({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+function Th({ children, className = '' }: { children?: React.ReactNode; className?: string }) {
   return <th className={`px-5 py-3 font-semibold ${className}`}>{children}</th>;
 }

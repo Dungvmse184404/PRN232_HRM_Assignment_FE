@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   errorMessage,
+  horsesApi,
   jockeyApi,
   type AssignedRaceForJockeyDto,
+  type HorseDto,
   type InvitationStatus,
   type PagedResult,
 } from '../../lib/api';
+import { groupByTournament } from '../../lib/grouping';
 import { Alert, Badge, Button, Card, Spinner } from '../../components/ui';
 import {
   ClockIcon,
@@ -15,6 +18,7 @@ import {
   RefreshIcon,
   RulerIcon,
   ScaleIcon,
+  TrophyIcon,
   type IconComponent,
 } from '../../components/icons';
 
@@ -49,6 +53,9 @@ function MetaRow({ icon: Icon, label, value }: { icon: IconComponent; label: str
 export default function MyAssignedRacesPage() {
   const [page, setPage] = useState(1);
   const [data, setData] = useState<PagedResult<AssignedRaceForJockeyDto> | null>(null);
+  // Giống/màu/cân nặng/chiều cao không nằm trong contract gRPC HorseLookup (chỉ có tên), nên tự
+  // gọi thêm GET /horse/horses/{id} phía FE cho từng ngựa duy nhất trong trang hiện tại.
+  const [horseDetails, setHorseDetails] = useState<Record<string, HorseDto>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +63,14 @@ export default function MyAssignedRacesPage() {
     setLoading(true);
     setError(null);
     try {
-      setData(await jockeyApi.getMyAssignedRaces({ pageNumber: page, pageSize: PAGE_SIZE }));
+      const result = await jockeyApi.getMyAssignedRaces({ pageNumber: page, pageSize: PAGE_SIZE });
+      setData(result);
+
+      const horseIds = [...new Set(result.items.map((r) => r.horseId))];
+      const details = await Promise.all(
+        horseIds.map((id) => horsesApi.get(id).then((h) => [id, h] as const).catch(() => null)),
+      );
+      setHorseDetails(Object.fromEntries(details.filter((d): d is [string, HorseDto] => d !== null)));
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -94,46 +108,57 @@ export default function MyAssignedRacesPage() {
           Bạn chưa được phân công vào cuộc đua nào.
         </Card>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2">
-          {data?.items.map((race) => {
-            const raceDate = new Date(race.scheduledStart);
-            const isPast = raceDate < now;
-            return (
-              <Card key={race.invitationId} className="flex flex-col gap-5 p-6">
-                {/* Race header */}
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="text-xl font-bold text-ink">{race.raceName}</h3>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-sm text-stone">
-                      <ClockIcon className="h-4 w-4 shrink-0 text-ash" />
-                      {raceDate.toLocaleString('vi-VN')}
-                      {isPast && <span className="ml-1 text-xs text-ash italic">(Đã qua)</span>}
-                    </p>
-                  </div>
-                  <Badge tone={STATUS_TONE[race.status]}>{STATUS_LABEL[race.status]}</Badge>
-                </div>
+        <div className="flex flex-col gap-8">
+          {groupByTournament(data?.items ?? []).map((group) => (
+            <div key={group.tournamentId} className="flex flex-col gap-3">
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-ink">
+                <TrophyIcon className="h-5 w-5 shrink-0 text-flame" /> {group.tournamentName}
+                <span className="text-sm font-normal text-ash">({group.items.length} cuộc đua)</span>
+              </h2>
+              <div className="grid gap-5 sm:grid-cols-2">
+                {group.items.map((race) => {
+                  const raceDate = new Date(race.raceScheduledStart);
+                  const isPast = raceDate < now;
+                  const horse = horseDetails[race.horseId];
+                  return (
+                    <Card key={race.id} className="flex flex-col gap-5 p-6">
+                      {/* Race header */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="text-xl font-bold text-ink">{race.raceName}</h3>
+                          <p className="mt-0.5 flex items-center gap-1.5 text-sm text-stone">
+                            <ClockIcon className="h-4 w-4 shrink-0 text-ash" />
+                            {raceDate.toLocaleString('vi-VN')}
+                            {isPast && <span className="ml-1 text-xs text-ash italic">(Đã qua)</span>}
+                          </p>
+                        </div>
+                        <Badge tone={STATUS_TONE[race.statusName]}>{STATUS_LABEL[race.statusName]}</Badge>
+                      </div>
 
-                {/* Horse info */}
-                <div className="rounded-xl border border-parchment/60 bg-cream p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <span className="grid h-9 w-9 place-items-center rounded-full bg-marigold text-ink">
-                      <HorseshoeIcon className="h-5 w-5" />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-ink">{race.horseName ?? 'Chưa xác định'}</p>
-                      <p className="text-xs text-ash">Thông tin ngựa điều khiển</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-y-2">
-                    <MetaRow icon={PaletteIcon} label="Màu sắc" value={race.horseColor} />
-                    <MetaRow icon={LeafIcon} label="Giống" value={race.horseBreed} />
-                    <MetaRow icon={ScaleIcon} label="Cân nặng" value={race.horseWeightKg != null ? `${race.horseWeightKg} kg` : null} />
-                    <MetaRow icon={RulerIcon} label="Chiều cao" value={race.horseHeightCm != null ? `${race.horseHeightCm} cm` : null} />
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
+                      {/* Horse info */}
+                      <div className="rounded-xl border border-parchment/60 bg-cream p-4">
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className="grid h-9 w-9 place-items-center rounded-full bg-marigold text-ink">
+                            <HorseshoeIcon className="h-5 w-5" />
+                          </span>
+                          <div>
+                            <p className="font-semibold text-ink">{race.horseName ?? horse?.name ?? 'Chưa xác định'}</p>
+                            <p className="text-xs text-ash">Thông tin ngựa điều khiển</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-y-2">
+                          <MetaRow icon={PaletteIcon} label="Màu sắc" value={horse?.color} />
+                          <MetaRow icon={LeafIcon} label="Giống" value={horse?.breed} />
+                          <MetaRow icon={ScaleIcon} label="Cân nặng" value={horse?.weightKg != null ? `${horse.weightKg} kg` : null} />
+                          <MetaRow icon={RulerIcon} label="Chiều cao" value={horse?.heightCm != null ? `${horse.heightCm} cm` : null} />
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

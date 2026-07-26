@@ -20,7 +20,10 @@ export default function HorsesPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<HorseStatus | ''>('');
   const [includeInactive, setIncludeInactive] = useState(false);
-  const [all, setAll] = useState(false);
+  // Admin vào đây từ mục "Quản lý ngựa" (Quản trị) là để xem TẤT CẢ ngựa - mặc định bật sẵn,
+  // trước đây để tắt mặc định khiến admin tưởng hệ thống không có ngựa nào (vì admin thường không
+  // sở hữu ngựa nào cả).
+  const [all, setAll] = useState(isAdmin);
   const [page, setPage] = useState(1);
 
   const [data, setData] = useState<PagedResult<HorseDto> | null>(null);
@@ -69,8 +72,12 @@ export default function HorsesPage() {
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold">Quản lý ngựa</h1>
-          <p className="mt-1 text-stone">Tạo, cập nhật hồ sơ và giấy tờ ngựa của bạn.</p>
+          <h1 className="text-3xl font-semibold">{isAdmin ? 'Quản lý ngựa' : 'Ngựa của tôi'}</h1>
+          <p className="mt-1 text-stone">
+            {isAdmin
+              ? 'Xem và quản lý hồ sơ ngựa của tất cả chủ sở hữu trong hệ thống.'
+              : 'Tạo, cập nhật hồ sơ và giấy tờ ngựa của bạn.'}
+          </p>
         </div>
         <Button onClick={openCreate}>+ Thêm ngựa</Button>
       </div>
@@ -120,6 +127,11 @@ export default function HorsesPage() {
                 <div>
                   <h3 className="text-lg font-semibold">{h.name}</h3>
                   <p className="text-xs text-ash">{h.breed || 'Chưa rõ giống'} · {GENDER_LABEL[h.genderName] ?? h.genderName}</p>
+                  {isAdmin && all && (
+                    <p className="mt-0.5 text-xs text-ash">
+                      Chủ: {h.ownerFullName ?? h.ownerEmail ?? h.ownerUserId.slice(0, 8) + '…'}
+                    </p>
+                  )}
                 </div>
                 {!h.isActive ? <Badge tone="red">Đã xóa</Badge>
                   : h.status === 'Retired' ? <Badge tone="neutral">Giải nghệ</Badge>

@@ -18,7 +18,9 @@ export default function AdminEntriesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<number>(0); // Default = Registered (pending)
+  // Mặc định "Tất cả" - trước đây mặc định lọc theo Registered khiến các đăng ký đã Approved/Confirmed
+  // (VD: đã có jockey xác nhận) bị ẩn mất trên trang này dù thực tế đã đăng ký thành công.
+  const [statusFilter, setStatusFilter] = useState<number>(-1);
   const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
@@ -68,10 +70,10 @@ export default function AdminEntriesPage() {
             onChange={(e) => { setPage(1); setStatusFilter(Number(e.target.value)); }}
             className="rounded-[var(--radius-input)] border border-bone bg-paper px-3 py-2 text-sm outline-none focus:border-flame"
           >
+            <option value={-1}>Tất cả</option>
             <option value={0}>Chờ duyệt (Registered)</option>
             <option value={2}>Đã duyệt (Approved)</option>
             <option value={3}>Đã xác nhận (Confirmed)</option>
-            <option value={-1}>Tất cả</option>
           </select>
         </div>
       </Card>

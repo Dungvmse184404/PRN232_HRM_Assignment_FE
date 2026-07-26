@@ -39,6 +39,13 @@ export const CloseIcon: IconComponent = ({ className }) => (
   </Icon>
 );
 
+/** Tay cầm kéo-thả (sắp xếp thứ tự) - dùng chung helper Icon() với sidebar nên tự động đồng bộ stroke/màu. */
+export const GripIcon: IconComponent = ({ className }) => (
+  <Icon className={className}>
+    <path d="M8 7h8M8 12h8M8 17h8" />
+  </Icon>
+);
+
 /** Tổng quan */
 export const HomeIcon: IconComponent = ({ className }) => (
   <Icon className={className}>

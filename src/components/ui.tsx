@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type DragEvent, type InputHTMLAttributes, type ReactNode } from 'react';
 
 type Variant = 'primary' | 'ghost' | 'danger' | 'neutral';
 
@@ -220,4 +220,185 @@ export function Alert({ kind, children }: { kind: 'error' | 'success'; children:
       ? 'bg-red-50 text-red-700 border-red-200'
       : 'bg-green-50 text-green-700 border-green-200';
   return <div className={`rounded-[var(--radius-input)] border px-4 py-3 text-sm ${styles}`}>{children}</div>;
+}
+
+/**
+ * Danh sách xếp hạng kéo-thả (dùng cho "vị trí về đích"): kéo 1 hàng lên/xuống để
+ * đổi thứ hạng, hoặc gõ tay số hạng để "ghim" hàng đó cố định tại hạng đó.
+ *
+ * Model: mỗi id hoặc được GHIM (`pins[id] = hạng`, cố định tuyệt đối) hoặc nằm
+ * trong `unpinnedOrder` (thứ tự tương đối). Hạng hiển thị = lấp các ô còn trống
+ * (sau khi đặt các id đã ghim vào đúng ô) bằng `unpinnedOrder` theo thứ tự - nên
+ * kéo/ghim một hàng KHÔNG bao giờ làm xê dịch hạng của các hàng đã ghim khác;
+ * các hàng chưa ghim tự "chảy" qua/quanh các hàng đã ghim.
+ *
+ * Kéo một hàng (bất kể đang ghim hay không) luôn bỏ ghim của chính hàng đó.
+ */
+export function useSortableRanks() {
+  const [ids, setIds] = useState<string[]>([]);
+  const [pins, setPins] = useState<Record<string, number>>({});
+  const [unpinnedOrder, setUnpinnedOrder] = useState<string[]>([]);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const reset = useCallback((newIds: string[], initialRanks?: Record<string, number>) => {
+    setIds(newIds);
+    const p: Record<string, number> = {};
+    if (initialRanks) {
+      for (const id of newIds) {
+        const r = initialRanks[id];
+        if (r) p[id] = r;
+      }
+    }
+    setPins(p);
+    setUnpinnedOrder(newIds.filter((id) => !(id in p)));
+    setDragId(null);
+  }, []);
+
+  const n = ids.length;
+  // Đặt các id đã ghim vào đúng ô tuyệt đối trước, rồi lấp các ô trống bằng
+  // unpinnedOrder theo thứ tự. `used` chặn trùng lặp nếu state lỡ lệch nhịp
+  // (2 id cùng ghim 1 hạng, id vừa bị unpin nhưng chưa kịp rời unpinnedOrder...).
+  const order: string[] = (() => {
+    const used = new Set<string>();
+    const slots: (string | null)[] = new Array(n).fill(null);
+    for (const [id, rank] of Object.entries(pins)) {
+      if (rank >= 1 && rank <= n && !used.has(id) && slots[rank - 1] == null) {
+        slots[rank - 1] = id;
+        used.add(id);
+      }
+    }
+    let ui = 0;
+    for (let i = 0; i < n; i++) {
+      if (slots[i] != null) continue;
+      while (ui < unpinnedOrder.length && used.has(unpinnedOrder[ui])) ui++;
+      if (ui < unpinnedOrder.length) {
+        slots[i] = unpinnedOrder[ui];
+        used.add(unpinnedOrder[ui]);
+        ui++;
+      }
+    }
+    // Fallback phòng hờ: id còn sót lại (chưa dùng) lấp vào ô trống còn lại.
+    if (slots.some((s) => s == null)) {
+      for (const id of ids) {
+        if (used.has(id)) continue;
+        const idx = slots.indexOf(null);
+        if (idx === -1) break;
+        slots[idx] = id;
+        used.add(id);
+      }
+    }
+    return slots.filter((s): s is string => s != null);
+  })();
+
+  function setManualRank(id: string, rankInput: string) {
+    if (!rankInput) {
+      setPins((p) => {
+        if (!(id in p)) return p;
+        const next = { ...p };
+        delete next[id];
+        return next;
+      });
+      setUnpinnedOrder((u) => (u.includes(id) ? u : [...u, id]));
+      return;
+    }
+    const rank = Number(rankInput);
+    if (!Number.isInteger(rank) || rank < 1 || rank > n) return;
+    // Nếu hạng này đã có id khác ghim sẵn, id đó bị "đẩy" về lại dòng chảy tự
+    // động (unpinned) để tránh 2 id cùng ghim 1 hạng.
+    const bumpedId = Object.entries(pins).find(([k, v]) => k !== id && v === rank)?.[0] ?? null;
+    setPins((p) => {
+      const next: Record<string, number> = {};
+      for (const [k, v] of Object.entries(p)) {
+        if (k === id || k === bumpedId) continue;
+        next[k] = v;
+      }
+      next[id] = rank;
+      return next;
+    });
+    setUnpinnedOrder((u) => {
+      const filtered = u.filter((x) => x !== id);
+      return bumpedId ? [...filtered, bumpedId] : filtered;
+    });
+  }
+
+  // Kéo tới đâu, các hàng khác "nhường chỗ" ngay tới đó (không đợi thả tay) - tính lại
+  // thứ tự ngay trong onDragOver của hàng đang được rê qua, giống Trello/Notion.
+  function moveDraggedTo(draggedId: string, targetIndex: number) {
+    const fromIndex = order.indexOf(draggedId);
+    if (fromIndex === -1 || fromIndex === targetIndex) return;
+
+    let insertAt = 0;
+    for (let i = 0; i < targetIndex; i++) {
+      const rowId = order[i];
+      if (rowId !== draggedId && !(rowId in pins)) insertAt++;
+    }
+
+    setPins((p) => {
+      if (!(draggedId in p)) return p;
+      const next = { ...p };
+      delete next[draggedId];
+      return next;
+    });
+    setUnpinnedOrder((u) => {
+      const filtered = u.filter((x) => x !== draggedId);
+      filtered.splice(insertAt, 0, draggedId);
+      return filtered;
+    });
+  }
+
+  // FLIP: mỗi khi order đổi (do rê chuột qua hàng khác), ghi lại vị trí cũ/mới của từng
+  // hàng và animate transform từ cũ -> 0, để các hàng "trượt" vào chỗ mới thay vì giật.
+  const rowElsRef = useRef(new Map<string, HTMLElement>());
+  const prevRectsRef = useRef(new Map<string, DOMRect>());
+  const orderKey = order.join('|');
+
+  useLayoutEffect(() => {
+    const newRects = new Map<string, DOMRect>();
+    rowElsRef.current.forEach((el, id) => newRects.set(id, el.getBoundingClientRect()));
+
+    rowElsRef.current.forEach((el, id) => {
+      const prev = prevRectsRef.current.get(id);
+      const next = newRects.get(id);
+      if (!prev || !next) return;
+      const dy = prev.top - next.top;
+      if (Math.abs(dy) < 1) return;
+      el.style.transition = 'none';
+      el.style.transform = `translateY(${dy}px)`;
+      void el.getBoundingClientRect(); // force reflow trước khi animate về 0
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 220ms cubic-bezier(0.2, 0, 0, 1)';
+        el.style.transform = '';
+      });
+    });
+
+    prevRectsRef.current = newRects;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderKey]);
+
+  function rowRef(id: string) {
+    return (el: HTMLElement | null) => {
+      if (el) rowElsRef.current.set(id, el);
+      else rowElsRef.current.delete(id);
+    };
+  }
+
+  function dragHandlersFor(id: string, index: number) {
+    return {
+      ref: rowRef(id),
+      draggable: true,
+      onDragStart: () => setDragId(id),
+      onDragOver: (e: DragEvent) => {
+        e.preventDefault();
+        if (dragId != null && dragId !== id) moveDraggedTo(dragId, index);
+      },
+      onDragEnd: () => setDragId(null),
+      onDrop: (e: DragEvent) => {
+        e.preventDefault();
+        setDragId(null);
+      },
+      isDragging: dragId === id,
+    };
+  }
+
+  return { order, pins, setManualRank, reset, dragHandlersFor };
 }

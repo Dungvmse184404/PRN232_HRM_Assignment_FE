@@ -43,6 +43,30 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Scrollbar theo màu hệ thống (dùng var(--color-*) nên tự đổi màu theo .app-shell ở dưới),
+   thay vì scrollbar mặc định của OS. Track trong suốt, thumb dùng --color-stone (luôn là màu
+   đặc, không như --color-bone bị trong suốt ở bản tối) để luôn nhìn rõ. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-stone) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-stone);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-flame);
+}
+
 /* ---------------------------------------------------------------------------
    Dashboard skin - obsidian / crimson / gold, the same tone as the landing hero.
    Everything under AppLayout is wrapped in .app-shell, and Tailwind v4 compiles

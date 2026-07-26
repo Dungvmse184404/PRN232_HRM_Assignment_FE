@@ -460,9 +460,11 @@ export default function RacingResultsPage() {
               <dt className="text-ash">Top 3</dt>
               <dd className="font-medium text-ink">{jockeyPerf.top3Count}</dd>
               <dt className="text-ash">Hạng trung bình</dt>
-              <dd className="font-medium text-ink">{jockeyPerf.averageRank.toFixed(2)}</dd>
+              <dd className="font-medium text-ink">{jockeyPerf.averageRank.toFixed(4)}</dd>
               <dt className="text-ash">Tỷ lệ thắng</dt>
-              <dd className="font-medium text-ink">{jockeyPerf.winRate}%</dd>
+              {/* winRate từ backend là phân số 0-1 (wins/totalRaces), phải nhân 100 mới ra % - trước
+                  đây thiếu bước này nên hiện "0.333...%" thay vì "33.3333%". */}
+              <dd className="font-medium text-ink">{(jockeyPerf.winRate * 100).toFixed(4)}%</dd>
               <dt className="text-ash">Tổng thưởng</dt>
               <dd className="font-medium text-ink">{jockeyPerf.totalPrize}</dd>
             </dl>

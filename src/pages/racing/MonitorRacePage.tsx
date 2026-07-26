@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   errorMessage,
+  groupByTournament,
   racingApi,
   type RaceDto,
   type RaceEntryDto,
@@ -121,28 +122,32 @@ export default function MonitorRacePage() {
       {error && <Alert kind="error">{error}</Alert>}
 
       <div className="grid gap-5 lg:grid-cols-[1fr_2fr]">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           {loading ? (
             <div className="py-12 text-center text-stone"><Spinner /> Đang tải…</div>
           ) : races?.items.length === 0 ? (
             <Card className="py-12 text-center text-stone">Không có cuộc đua nào.</Card>
           ) : (
-            races?.items.map((r) => (
-              <div
-                key={r.id}
-                className={`cursor-pointer rounded-[var(--radius-card)] border border-parchment/60 bg-paper p-5 transition hover:border-flame/40 ${selected?.id === r.id ? 'border-flame' : ''}`}
-                onClick={() => selectRace(r)}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-semibold">{r.name}</div>
-                    <div className="mt-0.5 text-xs text-ash">{r.tournamentName}</div>
+            groupByTournament(races?.items ?? []).map((group) => (
+              <div key={group[0].tournamentId} className="flex flex-col gap-3">
+                {group.map((r) => (
+                  <div
+                    key={r.id}
+                    className={`cursor-pointer rounded-[var(--radius-card)] border border-parchment/60 bg-paper p-5 transition hover:border-flame/40 ${selected?.id === r.id ? 'border-flame' : ''}`}
+                    onClick={() => selectRace(r)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-semibold">{r.name}</div>
+                        <div className="mt-0.5 text-xs text-ash">{r.tournamentName}</div>
+                      </div>
+                      <StatusBadge name={r.statusName} />
+                    </div>
+                    <div className="mt-2 text-xs text-stone">
+                      {new Date(r.scheduledStart).toLocaleString('vi-VN')} · {r.entryCount}/{r.maxHorses} ngựa
+                    </div>
                   </div>
-                  <StatusBadge name={r.statusName} />
-                </div>
-                <div className="mt-2 text-xs text-stone">
-                  {new Date(r.scheduledStart).toLocaleString('vi-VN')} · {r.entryCount}/{r.maxHorses} ngựa
-                </div>
+                ))}
               </div>
             ))
           )}

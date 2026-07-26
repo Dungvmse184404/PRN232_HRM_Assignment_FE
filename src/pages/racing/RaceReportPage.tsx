@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import {
   errorMessage,
+  groupByTournament,
   racingApi,
   type AssignedRaceDto,
 } from '../../lib/api';
@@ -104,21 +105,25 @@ export default function RaceReportPage() {
             {assigned.length === 0 ? (
               <p className="mt-6 text-sm text-ash">Chưa có cuộc đua nào được phân công.</p>
             ) : (
-              <ul className="mt-4 flex flex-col gap-2">
-                {assigned.map((a) => (
-                  <li
-                    key={a.raceId}
-                    className={`cursor-pointer rounded-[var(--radius-input)] border px-4 py-3 text-sm transition hover:border-flame/40 ${selectedRaceId === a.raceId ? 'border-flame bg-marigold/20' : 'border-bone'}`}
-                    onClick={() => { setSelectedRaceId(a.raceId); setSuccess(null); setError(null); }}
-                  >
-                    <div className="font-medium text-ink">{a.raceName}</div>
-                    {a.tournamentName && <div className="text-xs text-stone">{a.tournamentName}</div>}
-                    <div className="mt-0.5 text-xs text-ash">
-                      {new Date(a.scheduledStart).toLocaleString('vi-VN')} · {a.entries.length} ngựa
-                    </div>
-                  </li>
+              <div className="mt-4 flex flex-col gap-3">
+                {groupByTournament(assigned).map((group) => (
+                  <ul key={group[0].tournamentId} className="flex flex-col gap-2">
+                    {group.map((a) => (
+                      <li
+                        key={a.raceId}
+                        className={`cursor-pointer rounded-[var(--radius-input)] border px-4 py-3 text-sm transition hover:border-flame/40 ${selectedRaceId === a.raceId ? 'border-flame bg-marigold/20' : 'border-bone'}`}
+                        onClick={() => { setSelectedRaceId(a.raceId); setSuccess(null); setError(null); }}
+                      >
+                        <div className="font-medium text-ink">{a.raceName}</div>
+                        {a.tournamentName && <div className="text-xs text-stone">{a.tournamentName}</div>}
+                        <div className="mt-0.5 text-xs text-ash">
+                          {new Date(a.scheduledStart).toLocaleString('vi-VN')} · {a.entries.length} ngựa
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 ))}
-              </ul>
+              </div>
             )}
           </Card>
         </div>

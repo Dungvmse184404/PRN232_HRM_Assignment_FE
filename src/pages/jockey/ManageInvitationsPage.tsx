@@ -160,7 +160,7 @@ export default function ManageInvitationsPage() {
                       <p className="font-medium text-ink">{inv.raceName}</p>
                     </td>
                     <td className="px-5 py-3.5 text-stone">{inv.horseName ?? '-'}</td>
-                    <td className="px-5 py-3.5 text-stone">{inv.jockeyName ?? inv.jockeyId.slice(0, 8) + '…'}</td>
+                    <td className="px-5 py-3.5 text-stone">{inv.jockeyFullName || inv.jockeyId.slice(0, 8) + '…'}</td>
                     <td className="max-w-[180px] px-5 py-3.5 text-stone">
                       <p className="truncate">{inv.message || '-'}</p>
                     </td>
@@ -170,7 +170,7 @@ export default function ManageInvitationsPage() {
                       </Badge>
                     </td>
                     <td className="px-5 py-3.5 text-stone whitespace-nowrap">
-                      {new Date(inv.sentAtUtc).toLocaleDateString('vi-VN')}
+                      {new Date(inv.invitedAtUtc).toLocaleDateString('vi-VN')}
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex flex-wrap gap-1.5">

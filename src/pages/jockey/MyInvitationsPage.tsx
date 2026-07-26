@@ -6,6 +6,7 @@ import {
   type InvitationStatus,
   type PagedResult,
 } from '../../lib/api';
+import { groupByTournament } from '../../lib/grouping';
 import { Alert, Badge, Button, Card, Spinner } from '../../components/ui';
 import {
   CalendarIcon,
@@ -17,7 +18,6 @@ import {
   HorseshoeIcon,
   RefreshIcon,
   TrophyIcon,
-  UserIcon,
 } from '../../components/icons';
 
 const PAGE_SIZE = 10;
@@ -126,75 +126,82 @@ export default function MyInvitationsPage() {
           Không có lời mời nào.
         </Card>
       ) : (
-        <div className="flex flex-col gap-4">
-          {data?.items.map((inv) => (
-            <Card key={inv.id} className="flex flex-col gap-4 p-6">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                {/* Left info */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <FlagIcon className="h-5 w-5 shrink-0 text-flame" />
-                    <h3 className="text-lg font-semibold text-ink">{inv.raceName}</h3>
-                    <Badge tone={STATUS_TONE[inv.statusName]}>{STATUS_LABEL[inv.statusName]}</Badge>
-                  </div>
-                  <div className="flex flex-wrap gap-4 text-sm text-stone">
-                    <span className="flex items-center gap-1.5">
-                      <HorseshoeIcon className="h-4 w-4 shrink-0 text-ash" />
-                      Ngựa: <strong className="text-ink">{inv.horseName ?? '-'}</strong>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <UserIcon className="h-4 w-4 shrink-0 text-ash" />
-                      Từ: <strong className="text-ink">{inv.jockeyName ?? 'Chủ ngựa'}</strong>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <CalendarIcon className="h-4 w-4 shrink-0 text-ash" />
-                      Ngày gửi: <strong className="text-ink">{new Date(inv.sentAtUtc).toLocaleDateString('vi-VN')}</strong>
-                    </span>
-                  </div>
-                  {inv.message && (
-                    <div className="mt-2 flex items-start gap-2 rounded-xl border border-parchment/60 bg-cream p-3 text-sm text-stone italic">
-                      <ChatIcon className="mt-0.5 h-4 w-4 shrink-0 text-ash" />
-                      <span>"{inv.message}"</span>
+        <div className="flex flex-col gap-8">
+          {groupByTournament(data?.items ?? []).map((group) => (
+            <div key={group.tournamentId} className="flex flex-col gap-3">
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-ink">
+                <TrophyIcon className="h-5 w-5 shrink-0 text-flame" /> {group.tournamentName}
+                <span className="text-sm font-normal text-ash">({group.items.length} lời mời)</span>
+              </h2>
+              <div className="flex flex-col gap-4">
+                {group.items.map((inv) => (
+                  <Card key={inv.id} className="flex flex-col gap-4 p-6">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      {/* Left info */}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <FlagIcon className="h-5 w-5 shrink-0 text-flame" />
+                          <h3 className="text-lg font-semibold text-ink">{inv.raceName}</h3>
+                          <Badge tone={STATUS_TONE[inv.statusName]}>{STATUS_LABEL[inv.statusName]}</Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-4 text-sm text-stone">
+                          <span className="flex items-center gap-1.5">
+                            <HorseshoeIcon className="h-4 w-4 shrink-0 text-ash" />
+                            Ngựa: <strong className="text-ink">{inv.horseName ?? '-'}</strong>
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <CalendarIcon className="h-4 w-4 shrink-0 text-ash" />
+                            Ngày gửi: <strong className="text-ink">{new Date(inv.invitedAtUtc).toLocaleDateString('vi-VN')}</strong>
+                          </span>
+                        </div>
+                        {inv.message && (
+                          <div className="mt-2 flex items-start gap-2 rounded-xl border border-parchment/60 bg-cream p-3 text-sm text-stone italic">
+                            <ChatIcon className="mt-0.5 h-4 w-4 shrink-0 text-ash" />
+                            <span>"{inv.message}"</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions – FR-19 */}
+                      {inv.statusName === 'Pending' && (
+                        <div className="flex gap-2">
+                          <Button
+                            loading={acting === inv.id}
+                            onClick={() => void respond(inv.id, 'Accepted')}
+                          >
+                            <CheckIcon className="h-4 w-4" /> Chấp nhận
+                          </Button>
+                          <Button
+                            variant="danger"
+                            loading={acting === inv.id}
+                            onClick={() => {
+                              if (confirm('Từ chối lời mời này?')) {
+                                void respond(inv.id, 'Declined');
+                              }
+                            }}
+                          >
+                            <CloseIcon className="h-4 w-4" /> Từ chối
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Accepted chỉ còn xuất hiện với dữ liệu cũ trước khi Accept = tự Confirmed luôn */}
+                      {inv.statusName === 'Accepted' && (
+                        <div className="flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm text-green-700 border border-green-200">
+                          <CheckCircleIcon className="h-4 w-4 shrink-0" /> Đã chấp nhận
+                        </div>
+                      )}
+
+                      {inv.statusName === 'Confirmed' && (
+                        <div className="flex items-center gap-2 rounded-full bg-marigold/30 px-4 py-2 text-sm text-ink border border-flame/30">
+                          <TrophyIcon className="h-4 w-4 shrink-0 text-flame" /> Đã được xác nhận tham gia
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-
-                {/* Actions – FR-19 */}
-                {inv.statusName === 'Pending' && (
-                  <div className="flex gap-2">
-                    <Button
-                      loading={acting === inv.id}
-                      onClick={() => void respond(inv.id, 'Accepted')}
-                    >
-                      <CheckIcon className="h-4 w-4" /> Chấp nhận
-                    </Button>
-                    <Button
-                      variant="danger"
-                      loading={acting === inv.id}
-                      onClick={() => {
-                        if (confirm('Từ chối lời mời này?')) {
-                          void respond(inv.id, 'Declined');
-                        }
-                      }}
-                    >
-                      <CloseIcon className="h-4 w-4" /> Từ chối
-                    </Button>
-                  </div>
-                )}
-
-                {inv.statusName === 'Accepted' && (
-                  <div className="flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm text-green-700 border border-green-200">
-                    <CheckCircleIcon className="h-4 w-4 shrink-0" /> Đã chấp nhận – Chờ chủ ngựa xác nhận
-                  </div>
-                )}
-
-                {inv.statusName === 'Confirmed' && (
-                  <div className="flex items-center gap-2 rounded-full bg-marigold/30 px-4 py-2 text-sm text-ink border border-flame/30">
-                    <TrophyIcon className="h-4 w-4 shrink-0 text-flame" /> Đã được xác nhận tham gia
-                  </div>
-                )}
+                  </Card>
+                ))}
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}

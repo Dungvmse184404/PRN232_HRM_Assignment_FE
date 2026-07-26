@@ -55,7 +55,9 @@ export default function AppLayout() {
       items: [
         { to: '/dashboard', label: 'Tổng quan', icon: HomeIcon, end: true },
         { to: '/calendar', label: 'Lịch đua', icon: CalendarIcon },
-        { to: '/horses', label: 'Ngựa của tôi', icon: HorseshoeIcon },
+        // Chỉ Horse Owner mới sở hữu ngựa - các role khác (Jockey/Spectator/RaceReferee) không có
+        // ngựa nên ẩn tab này đi. Admin xem/quản lý TẤT CẢ ngựa qua mục Quản trị -> "Quản lý ngựa".
+        ...(isHorseOwner ? [{ to: '/horses', label: 'Ngựa của tôi', icon: HorseshoeIcon }] : []),
         { to: '/racing-results', label: 'Kết quả cuộc đua', icon: TrophyIcon },
         ...(isSpectator ? [{ to: '/predictions', label: 'Dự đoán', icon: SparklesIcon }] : []),
         { to: '/tournaments', label: 'Giải đấu', icon: MedalIcon },
@@ -106,6 +108,7 @@ export default function AppLayout() {
           {
             title: 'Quản trị',
             items: [
+              { to: '/horses', label: 'Quản lý ngựa', icon: HorseshoeIcon },
               { to: '/racing/assign-referee', label: 'Phân công TT', icon: UserCheckIcon },
               { to: '/admin/jockeys', label: 'Quản lý Jockey', icon: UsersIcon },
               { to: '/admin/users', label: 'Quản lý tài khoản', icon: IdCardIcon },
@@ -213,7 +216,7 @@ export default function AppLayout() {
           </button>
         </div>
 
-        <main className="min-w-0 flex-1 overflow-y-auto px-6 py-8">
+        <main className="min-w-0 flex-1 overflow-y-auto px-6 py-8 [scrollbar-gutter:stable]">
           <div className="mx-auto max-w-[1000px]">
             <Outlet />
           </div>
