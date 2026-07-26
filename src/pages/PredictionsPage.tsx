@@ -46,8 +46,21 @@ export default function PredictionsPage() {
         predictionsApi.getMyRewards(),
       ]);
       // Handle both direct array and ApiResponse-wrapped shapes
-      setPredictions(Array.isArray(preds) ? preds : ((preds as unknown as { data: MyPredictionDto[] }).data ?? []));
+      const predsArr = Array.isArray(preds) ? preds : ((preds as unknown as { data: MyPredictionDto[] }).data ?? []);
+      setPredictions(predsArr);
       setRewards(Array.isArray(rews) ? rews : ((rews as unknown as { data: PredictionRewardDto[] }).data ?? []));
+      // Resolve horse names for the predicted horses so the table shows names instead of ids.
+      const predHorseIds = Array.from(new Set(predsArr.map((p) => p.predictedWinnerHorseId)));
+      const nameEntries = await Promise.all(
+        predHorseIds.map(async (id) => {
+          try { return [id, (await horsesApi.get(id)).name] as const; } catch { return null; }
+        }),
+      );
+      setHorseNameMap((prev) => {
+        const next = { ...prev };
+        for (const e of nameEntries) if (e) next[e[0]] = e[1];
+        return next;
+      });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -205,7 +218,7 @@ export default function PredictionsPage() {
                 {entriesLoading ? 'Đang tải...' : '-- Chọn ngựa --'}
               </option>
               {entries.map((entry) => {
-                const name = horseNameMap[entry.horseId] ?? `Horse ${entry.horseId.slice(0, 8)}`;
+                const name = horseNameMap[entry.horseId] ?? '-';
                 return (
                   <option key={entry.id} value={entry.horseId}>
                     {name}
@@ -238,8 +251,8 @@ export default function PredictionsPage() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-parchment/60 text-xs font-medium uppercase tracking-wider text-ash">
-                    <th className="py-2 pr-4">Race ID</th>
-                    <th className="py-2 pr-4">Horse ID</th>
+                    <th className="py-2 pr-4">Cuộc đua</th>
+                    <th className="py-2 pr-4">Ngựa</th>
                     <th className="py-2 pr-4">Trạng thái</th>
                     <th className="py-2 pr-4">Phần thưởng</th>
                     <th className="py-2">Ngày gửi</th>
@@ -248,8 +261,8 @@ export default function PredictionsPage() {
                 <tbody>
                   {predictions.map((p) => (
                     <tr key={p.predictionId} className="border-b border-parchment/30">
-                      <td className="py-2.5 pr-4 font-mono text-xs">{p.raceId}</td>
-                      <td className="py-2.5 pr-4 font-mono text-xs">{p.predictedWinnerHorseId}</td>
+                      <td className="py-2.5 pr-4">{races.find((r) => r.id === p.raceId)?.name ?? '-'}</td>
+                      <td className="py-2.5 pr-4">{horseNameMap[p.predictedWinnerHorseId] ?? '-'}</td>
                       <td className="py-2.5 pr-4">
                         <Badge tone={statusTone(p.status)}>{p.status}</Badge>
                       </td>

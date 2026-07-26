@@ -129,7 +129,7 @@ export default function HorsesPage() {
                   <p className="text-xs text-ash">{h.breed || 'Chưa rõ giống'} · {GENDER_LABEL[h.genderName] ?? h.genderName}</p>
                   {isAdmin && all && (
                     <p className="mt-0.5 text-xs text-ash">
-                      Chủ: {h.ownerFullName ?? h.ownerEmail ?? h.ownerUserId.slice(0, 8) + '…'}
+                      Chủ: {h.ownerFullName ?? h.ownerEmail ?? '-'}
                     </p>
                   )}
                 </div>

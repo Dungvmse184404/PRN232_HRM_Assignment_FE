@@ -105,13 +105,12 @@ export default function AdminEntriesPage() {
                   <tr key={e.id} className="border-b border-parchment/40 last:border-0 hover:bg-cream/40">
                     <td className="px-5 py-3">
                       <div className="font-medium text-ink">{e.raceName}</div>
-                      <div className="text-xs text-ash font-mono">{e.raceId.slice(0, 8)}...</div>
                     </td>
                     <td className="px-5 py-3">
                       {e.horseName ? (
                         <span className="text-ink">{e.horseName}</span>
                       ) : (
-                        <span className="text-xs text-stone font-mono">{e.horseId.slice(0, 8)}...</span>
+                        <span className="text-xs text-stone">-</span>
                       )}
                     </td>
                     <td className="px-5 py-3">
@@ -120,8 +119,10 @@ export default function AdminEntriesPage() {
                           <div className="text-ink">{e.ownerFullName}</div>
                           {e.ownerEmail && <div className="text-xs text-ash">{e.ownerEmail}</div>}
                         </div>
+                      ) : e.ownerEmail ? (
+                        <span className="text-ink">{e.ownerEmail}</span>
                       ) : (
-                        <span className="text-xs text-stone font-mono">{e.ownerUserId.slice(0, 8)}...</span>
+                        <span className="text-xs text-stone">-</span>
                       )}
                     </td>
                     <td className="px-5 py-3 text-xs text-stone">{new Date(e.registeredAtUtc).toLocaleString('vi-VN')}</td>

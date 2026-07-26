@@ -92,7 +92,6 @@ export default function HorseInspectionPage() {
                   <tr key={e.raceEntryId} className="border-b border-parchment/40 last:border-0 hover:bg-cream/40">
                     <td className="px-5 py-3">
                       <div className="font-medium text-ink">{e.horseName ?? '—'}</div>
-                      <div className="font-mono text-xs text-ash">{e.raceEntryId.slice(0, 8)}…</div>
                     </td>
                     <td className="px-5 py-3 text-stone">{e.jockeyName ?? '-'}</td>
                     <td className="px-5 py-3">

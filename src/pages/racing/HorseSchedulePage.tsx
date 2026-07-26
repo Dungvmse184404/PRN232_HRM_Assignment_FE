@@ -130,7 +130,7 @@ export default function HorseSchedulePage() {
                               {e.raceName}
                             </Link>
                           </td>
-                          <td className="px-5 py-3 text-stone">{e.horseName ?? `${e.horseId.slice(0, 8)}...`}</td>
+                          <td className="px-5 py-3 text-stone">{e.horseName ?? '-'}</td>
                           <td className="px-5 py-3 text-xs text-stone">{new Date(e.registeredAtUtc).toLocaleString('vi-VN')}</td>
                           <td className="px-5 py-3">
                             <Badge tone={ENTRY_STATUS[e.status]?.tone ?? 'neutral'}>{ENTRY_STATUS[e.status]?.label ?? e.statusName}</Badge>

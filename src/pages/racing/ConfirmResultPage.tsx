@@ -24,10 +24,6 @@ const RESULT_STATUS_TONE: Record<string, 'neutral' | 'green' | 'flame'> = {
 // Chỉ để preview điểm phía FE khi nhập - điểm thật do BE tính (RoundPoints), giữ đồng bộ thủ công.
 const ROUND_POINTS: Record<number, number> = { 1: 100, 2: 50, 3: 25, 4: 15, 5: 10 };
 
-function shortId(id: string) {
-  return `${id.slice(0, 8)}…`;
-}
-
 export default function ConfirmResultPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
@@ -120,6 +116,12 @@ export default function ConfirmResultPage() {
     ?? (pinnedRace?.id === selectedRaceId ? pinnedRace : undefined);
   const hasRounds = (selectedRace?.rounds.length ?? 0) > 0;
   const sortedRounds = [...(selectedRace?.rounds ?? [])].sort((a, b) => a.roundNumber - b.roundNumber);
+
+  // Tra tên ngựa/jockey từ danh sách entry (đã được BE enrich) để các bảng kết quả hiển thị tên thay vì ID.
+  const horseNameById = new Map(entries.map((e) => [e.horseId, e.horseName]));
+  const jockeyNameById = new Map(
+    entries.filter((e) => e.jockeyId).map((e) => [e.jockeyId as string, e.jockeyName]),
+  );
 
   useEffect(() => {
     if (selectedRaceId) void loadDetail(selectedRaceId, hasRounds);
@@ -313,9 +315,9 @@ export default function ConfirmResultPage() {
                             </td>
                             <td className="px-5 py-3">{en.laneNo ?? '-'}</td>
                             <td className="px-5 py-3">
-                              <div className="font-medium text-ink">{en.horseName ?? `Ngựa ${shortId(en.horseId)}`}</div>
+                              <div className="font-medium text-ink">{en.horseName ?? '-'}</div>
                             </td>
-                            <td className="px-5 py-3 font-mono text-xs text-stone">{en.jockeyId ? shortId(en.jockeyId) : '-'}</td>
+                            <td className="px-5 py-3 text-xs text-stone">{en.jockeyName ?? '-'}</td>
                             <td className="px-5 py-3">
                               <div className="flex items-center gap-1.5">
                                 <input
@@ -354,8 +356,8 @@ export default function ConfirmResultPage() {
                       <thead className="border-b border-parchment/60 bg-cream/60 text-xs uppercase tracking-wide text-ash">
                         <tr>
                           <Th>Hạng cuộc đua</Th>
-                          <Th>Mã ngựa</Th>
-                          <Th>Mã jockey</Th>
+                          <Th>Ngựa</Th>
+                          <Th>Jockey</Th>
                           <Th className="text-right">Tổng điểm</Th>
                         </tr>
                       </thead>
@@ -365,8 +367,8 @@ export default function ConfirmResultPage() {
                           .map((t) => (
                             <tr key={t.raceEntryId} className="border-b border-parchment/40 last:border-0">
                               <td className="px-5 py-3 font-medium">{t.raceFinishPosition ?? '-'}</td>
-                              <td className="px-5 py-3 font-mono text-xs text-stone">{shortId(t.horseId)}</td>
-                              <td className="px-5 py-3 font-mono text-xs text-stone">{t.jockeyId ? shortId(t.jockeyId) : '-'}</td>
+                              <td className="px-5 py-3 text-xs text-stone">{entryById.get(t.raceEntryId)?.horseName ?? horseNameById.get(t.horseId) ?? '-'}</td>
+                              <td className="px-5 py-3 text-xs text-stone">{entryById.get(t.raceEntryId)?.jockeyName ?? (t.jockeyId ? jockeyNameById.get(t.jockeyId) ?? '-' : '-')}</td>
                               <td className="px-5 py-3 text-right font-semibold">{t.totalPoints}</td>
                             </tr>
                           ))}
@@ -388,8 +390,8 @@ export default function ConfirmResultPage() {
               <thead className="border-b border-parchment/60 bg-cream/60 text-xs uppercase tracking-wide text-ash">
                 <tr>
                   <Th>Hạng</Th>
-                  <Th>Mã ngựa</Th>
-                  <Th>Mã jockey</Th>
+                  <Th>Ngựa</Th>
+                  <Th>Jockey</Th>
                   <Th>Thời gian về đích</Th>
                   <Th>Trạng thái</Th>
                   <Th className="text-right">Hành động</Th>
@@ -399,8 +401,8 @@ export default function ConfirmResultPage() {
                 {sortedResults.map((r) => (
                   <tr key={r.id} className="border-b border-parchment/40 last:border-0 hover:bg-cream/40">
                     <td className="px-5 py-3 font-medium">{r.finishPosition ?? '-'}</td>
-                    <td className="px-5 py-3 font-mono text-xs text-stone">{shortId(r.horseId)}</td>
-                    <td className="px-5 py-3 font-mono text-xs text-stone">{r.jockeyId ? shortId(r.jockeyId) : '-'}</td>
+                    <td className="px-5 py-3 text-xs text-stone">{horseNameById.get(r.horseId) ?? '-'}</td>
+                    <td className="px-5 py-3 text-xs text-stone">{r.jockeyId ? jockeyNameById.get(r.jockeyId) ?? '-' : '-'}</td>
                     <td className="px-5 py-3">{r.finishTimeMs != null ? `${(r.finishTimeMs / 1000).toFixed(2)}s` : '-'}</td>
                     <td className="px-5 py-3">
                       <Badge tone={RESULT_STATUS_TONE[r.statusName] ?? 'neutral'}>{r.statusName}</Badge>
@@ -468,9 +470,9 @@ export default function ConfirmResultPage() {
                         </td>
                         <td className="px-5 py-3">{en.laneNo ?? '-'}</td>
                         <td className="px-5 py-3">
-                          <div className="font-medium text-ink">{en.horseName ?? `Ngựa ${shortId(en.horseId)}`}</div>
+                          <div className="font-medium text-ink">{en.horseName ?? '-'}</div>
                         </td>
-                        <td className="px-5 py-3 font-mono text-xs text-stone">{en.jockeyId ? shortId(en.jockeyId) : '-'}</td>
+                        <td className="px-5 py-3 text-xs text-stone">{en.jockeyName ?? '-'}</td>
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-1.5">
                             <input

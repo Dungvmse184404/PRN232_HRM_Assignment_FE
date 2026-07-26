@@ -19,10 +19,6 @@ import { Alert, Badge, Button, Card, Spinner } from '../components/ui';
 
 const selectClass = 'rounded-[var(--radius-input)] border border-bone bg-paper px-3 py-2.5 text-sm outline-none focus:border-flame';
 
-function shortId(id: string) {
-  return id.slice(0, 8);
-}
-
 function formatFinishTime(ms: number | null) {
   if (ms == null) return '-';
   return `${(ms / 1000).toFixed(2)}s`;
@@ -307,10 +303,10 @@ export default function RacingResultsPage() {
                         <tr key={item.horseId} className="border-b border-parchment/30">
                           <td className="py-2.5 pr-4 font-medium">{item.rank}</td>
                           <td className="py-2.5 pr-4">
-                            {horseNameMap[item.horseId] ?? `Ngựa ${shortId(item.horseId)}`}
+                            {horseNameMap[item.horseId] ?? '-'}
                           </td>
                           <td className="py-2.5 pr-4 text-xs text-stone">
-                            {item.jockeyId ? shortId(item.jockeyId) : '-'}
+                            {item.jockeyName ?? '-'}
                           </td>
                           <td className="py-2.5 pr-4">{formatFinishTime(item.finishTimeMs)}</td>
                           <td className="py-2.5 pr-4">{item.points}</td>
@@ -347,7 +343,7 @@ export default function RacingResultsPage() {
                       <tr key={row.horseId} className="border-b border-parchment/30">
                         <td className="py-2.5 pr-4 font-medium">{row.rank}</td>
                         <td className="py-2.5 pr-4">
-                          {horseNameMap[row.horseId] ?? `Ngựa ${shortId(row.horseId)}`}
+                          {horseNameMap[row.horseId] ?? '-'}
                         </td>
                         <td className="py-2.5 pr-4">{row.totalPoints}</td>
                         <td className="py-2.5 pr-4">{row.wins}</td>

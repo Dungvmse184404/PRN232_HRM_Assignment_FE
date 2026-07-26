@@ -243,8 +243,8 @@ export default function MonitorRacePage() {
                         {entries.items.map((e) => (
                           <tr key={e.id} className="border-b border-parchment/40 last:border-0 hover:bg-cream/40">
                             <td className="px-5 py-3">{e.laneNo ?? '-'}</td>
-                            <td className="px-5 py-3 text-stone">{e.horseName ?? `${e.horseId.slice(0, 8)}…`}</td>
-                            <td className="px-5 py-3 text-stone">{e.jockeyId ? e.jockeyId.slice(0, 8) + '…' : '-'}</td>
+                            <td className="px-5 py-3 text-stone">{e.horseName ?? '-'}</td>
+                            <td className="px-5 py-3 text-stone">{e.jockeyName ?? '-'}</td>
                             <td className="px-5 py-3">
                               <Badge tone={e.statusName === 'Confirmed' ? 'green' : e.statusName === 'Rejected' ? 'red' : 'neutral'}>
                                 {ENTRY_STATUS_LABEL[e.statusName] ?? e.statusName}

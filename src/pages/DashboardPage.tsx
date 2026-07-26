@@ -18,7 +18,6 @@ export default function DashboardPage() {
           className="mt-3 block h-px w-[180px]"
           style={{ background: 'linear-gradient(90deg, var(--color-flame-dark), var(--gold, #b8863b), transparent)' }}
         />
-        <p className="mt-3 text-stone">Đây là khu vực kiểm thử dịch vụ Identity của HRM.</p>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
@@ -27,7 +26,6 @@ export default function DashboardPage() {
           <dl className="mt-4 space-y-3 text-sm">
             <Row label="Họ tên" value={user?.fullName} />
             <Row label="Email" value={user?.email} />
-            <Row label="User ID" value={<code className="text-xs text-stone">{user?.userId}</code>} />
             <div className="flex items-center justify-between">
               <dt className="text-ash">Vai trò</dt>
               <dd className="flex flex-wrap justify-end gap-1.5">

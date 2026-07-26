@@ -283,6 +283,7 @@ export interface RaceResultItemDto {
   rank: number;
   horseId: string;
   jockeyId: string | null;
+  jockeyName: string | null;
   finishTimeMs: number | null;
   points: number;
   prizeAmount: number | null;
@@ -435,6 +436,7 @@ export interface RaceEntryDto {
   horseName: string | null;
   ownerEmail: string | null;
   ownerFullName: string | null;
+  jockeyName: string | null;
 }
 
 export interface AssignedRaceEntryDto {
@@ -887,6 +889,7 @@ export interface RaceEntryDto {
   horseName: string | null;
   ownerEmail: string | null;
   ownerFullName: string | null;
+  jockeyName: string | null;
 }
 
 const racingApiClient = axios.create({ baseURL: '/api/racing' });

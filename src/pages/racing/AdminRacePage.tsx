@@ -266,10 +266,10 @@ export default function AdminRacePage() {
           {error && <Alert kind="error">{error}</Alert>}
 
           <Field label="Giải đấu">
-            <Input readOnly disabled value={form.tournamentId} placeholder="Chưa xác định giải đấu" />
+            <Input readOnly disabled value={tournament?.name ?? ''} placeholder="Chưa xác định giải đấu" />
             {tournament ? (
               <span className="mt-1 text-xs text-stone">
-                Giải: {tournament.name} · {tournament.startDate} - {tournament.endDate}
+                {tournament.startDate} to {tournament.endDate}
               </span>
             ) : (
               <span className="mt-1 text-xs text-red-500">

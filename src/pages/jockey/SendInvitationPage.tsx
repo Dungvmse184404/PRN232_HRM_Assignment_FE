@@ -218,7 +218,7 @@ export default function SendInvitationPage() {
                 </option>
                 {myEntries.map((en) => (
                   <option key={en.horseId} value={en.horseId}>
-                    {en.horseName ?? `Ngựa ${en.horseId.slice(0, 8)}…`} · {en.statusName}
+                    {en.horseName ?? '-'} · {en.statusName}
                   </option>
                 ))}
               </select>

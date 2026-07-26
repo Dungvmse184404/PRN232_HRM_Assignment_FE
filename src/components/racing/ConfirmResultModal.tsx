@@ -34,13 +34,6 @@ export default function ConfirmResultModal({
           <h3 className="text-lg font-semibold">Xác nhận kết quả</h3>
           <p className="mt-1 text-sm text-stone">Bạn có chắc muốn xác nhận kết quả cho đăng ký này?</p>
 
-          <dl className="mt-4 flex flex-col gap-2 text-sm">
-            <div className="flex items-center justify-between">
-              <dt className="text-ash">Mã kết quả</dt>
-              <dd className="font-mono text-xs text-stone">{resultId.slice(0, 8)}…</dd>
-            </div>
-          </dl>
-
           <p className="mt-4 text-xs text-ash">
             Sau khi xác nhận, kết quả sẽ chuyển sang trạng thái "RefereeConfirmed". Hành động này không thể hoàn tác.
           </p>

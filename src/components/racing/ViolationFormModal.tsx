@@ -61,7 +61,6 @@ export default function ViolationFormModal({
       <Card className="my-8 w-full max-w-lg">
         <div onClick={(e) => e.stopPropagation()}>
           <h3 className="text-xl font-semibold">Ghi nhận vi phạm</h3>
-          <p className="mt-1 text-sm text-stone">Mã cuộc đua: {raceId.slice(0, 8)}…</p>
 
           <form className="mt-5 grid grid-cols-2 gap-4" onSubmit={onSubmit}>
             <div className="col-span-2">
@@ -75,7 +74,7 @@ export default function ViolationFormModal({
                   <option value="">-- Không chọn (vi phạm chung) --</option>
                   {entries.map((e) => (
                     <option key={e.raceEntryId} value={e.raceEntryId}>
-                      {e.horseName ?? e.raceEntryId.slice(0, 8)} {e.jockeyName ? `· ${e.jockeyName}` : ''}
+                      {e.horseName ?? '-'} {e.jockeyName ? `· ${e.jockeyName}` : ''}
                     </option>
                   ))}
                 </select>

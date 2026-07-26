@@ -40,7 +40,7 @@ export default function InspectionFormModal({
       <Card className="my-8 w-full max-w-sm">
         <div onClick={(e) => e.stopPropagation()}>
           <h3 className="text-xl font-semibold">Ghi nhận kiểm tra ngựa</h3>
-          <p className="mt-1 text-sm text-stone">Mã đăng ký: {entry.raceEntryId.slice(0, 8)}…</p>
+          <p className="mt-1 text-sm text-stone">Ngựa: {entry.horseName ?? '-'}</p>
           {entry.jockeyName && <p className="text-xs text-ash">Jockey: {entry.jockeyName}</p>}
 
           <form className="mt-5 flex flex-col gap-4" onSubmit={onSubmit}>

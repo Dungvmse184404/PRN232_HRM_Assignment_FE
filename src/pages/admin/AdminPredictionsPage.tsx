@@ -57,7 +57,20 @@ export default function AdminPredictionsPage() {
         adminPredictionsApi.getAllPredictions(),
       ]);
       setConfigs(Array.isArray(cfgs) ? cfgs : ((cfgs as unknown as { data: PredictionConfigDto[] }).data ?? []));
-      setPredictions(Array.isArray(preds) ? preds : ((preds as unknown as { data: AdminPredictionDto[] }).data ?? []));
+      const predsArr = Array.isArray(preds) ? preds : ((preds as unknown as { data: AdminPredictionDto[] }).data ?? []);
+      setPredictions(predsArr);
+      // Resolve horse names for predicted horses so the table shows names instead of ids.
+      const predHorseIds = Array.from(new Set(predsArr.map((p) => p.predictedWinnerHorseId)));
+      const nameEntries = await Promise.all(
+        predHorseIds.map(async (id) => {
+          try { return [id, (await horsesApi.get(id)).name] as const; } catch { return null; }
+        }),
+      );
+      setHorseNameMap((prev) => {
+        const next = { ...prev };
+        for (const e of nameEntries) if (e) next[e[0]] = e[1];
+        return next;
+      });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -286,8 +299,7 @@ export default function AdminPredictionsPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-parchment/60 text-xs font-medium uppercase tracking-wider text-ash">
-                  <th className="py-2 pr-4">Config ID</th>
-                  <th className="py-2 pr-4">Race ID</th>
+                  <th className="py-2 pr-4">Cuộc đua</th>
                   <th className="py-2 pr-4">Reward Type</th>
                   <th className="py-2 pr-4">Reward Value</th>
                   <th className="py-2 pr-4">Deadline</th>
@@ -298,8 +310,7 @@ export default function AdminPredictionsPage() {
               <tbody>
                 {configs.map((c) => (
                   <tr key={c.configId} className="border-b border-parchment/30">
-                    <td className="py-2.5 pr-4 font-mono text-xs">{c.configId}</td>
-                    <td className="py-2.5 pr-4 font-mono text-xs">{c.raceId}</td>
+                    <td className="py-2.5 pr-4">{races.find((r) => r.id === c.raceId)?.name ?? '-'}</td>
                     <td className="py-2.5 pr-4">{c.rewardType}</td>
                     <td className="py-2.5 pr-4">{c.rewardValue ?? '--'}</td>
                     <td className="py-2.5 pr-4 text-xs text-stone">
@@ -360,7 +371,7 @@ export default function AdminPredictionsPage() {
                 {gradeEntriesLoading ? 'Đang tải...' : '-- Chọn ngựa --'}
               </option>
               {gradeEntries.map((entry) => {
-                const name = horseNameMap[entry.horseId] ?? `Horse ${entry.horseId.slice(0, 8)}`;
+                const name = horseNameMap[entry.horseId] ?? '-';
                 return (
                   <option key={entry.id} value={entry.horseId}>
                     {name}
@@ -403,10 +414,8 @@ export default function AdminPredictionsPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-parchment/60 text-xs font-medium uppercase tracking-wider text-ash">
-                  <th className="py-2 pr-4">Prediction ID</th>
-                  <th className="py-2 pr-4">Race ID</th>
-                  <th className="py-2 pr-4">Spectator ID</th>
-                  <th className="py-2 pr-4">Horse ID</th>
+                  <th className="py-2 pr-4">Cuộc đua</th>
+                  <th className="py-2 pr-4">Ngựa dự đoán</th>
                   <th className="py-2 pr-4">Trạng thái</th>
                   <th className="py-2">Created At</th>
                 </tr>
@@ -414,10 +423,8 @@ export default function AdminPredictionsPage() {
               <tbody>
                 {predictions.map((p) => (
                   <tr key={p.predictionId} className="border-b border-parchment/30">
-                    <td className="py-2.5 pr-4 font-mono text-xs">{p.predictionId}</td>
-                    <td className="py-2.5 pr-4 font-mono text-xs">{p.raceId}</td>
-                    <td className="py-2.5 pr-4 font-mono text-xs">{p.spectatorUserId}</td>
-                    <td className="py-2.5 pr-4 font-mono text-xs">{p.predictedWinnerHorseId}</td>
+                    <td className="py-2.5 pr-4">{races.find((r) => r.id === p.raceId)?.name ?? '-'}</td>
+                    <td className="py-2.5 pr-4">{horseNameMap[p.predictedWinnerHorseId] ?? '-'}</td>
                     <td className="py-2.5 pr-4">
                       <Badge tone={statusTone(p.status)}>{p.status}</Badge>
                     </td>

@@ -234,7 +234,7 @@ export default function RaceDetailPage() {
               {myEntries.map((en) => (
                 <div key={en.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                   <div>
-                    <span className="font-medium text-ink">{en.horseName ?? `Ngựa ${en.horseId.slice(0, 8)}…`}</span>
+                    <span className="font-medium text-ink">{en.horseName ?? '-'}</span>
                     {en.laneNo != null && <span className="ml-2 text-xs text-ash">Làn {en.laneNo}</span>}
                     {en.jockeyId && <span className="ml-2 text-xs text-ash">· Đã có jockey</span>}
                   </div>

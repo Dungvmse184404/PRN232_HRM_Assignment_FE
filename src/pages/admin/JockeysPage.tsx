@@ -178,7 +178,6 @@ export default function JockeysPage() {
                         </div>
                         <div>
                           <p className="font-semibold text-ink">{j.fullName}</p>
-                          <p className="text-xs text-ash font-mono">{j.userId.slice(0, 8)}…</p>
                         </div>
                       </div>
                     </td>
