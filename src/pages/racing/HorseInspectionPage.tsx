@@ -23,16 +23,16 @@ export default function HorseInspectionPage() {
     try {
       const data = await racingApi.getAssignedRaces();
       setAssigned(data);
-      if (selected) {
-        const refreshed = data.find((a) => a.raceId === selected.raceId);
-        setSelected(refreshed ?? null);
-      }
+      // Dùng updater để đọc "selected" hiện tại thay vì đóng closure qua nó - tránh việc mỗi lần
+      // load() lại setSelected(bản-object-mới) làm "load" đổi identity (do có [selected] trong deps
+      // của useCallback) -> useEffect([load]) chạy lại -> load() lại -> vòng lặp vô hạn gọi API.
+      setSelected((prev) => (prev ? data.find((a) => a.raceId === prev.raceId) ?? null : prev));
     } catch (err) {
       setError(errorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [selected]);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
 
