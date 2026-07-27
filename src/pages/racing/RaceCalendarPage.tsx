@@ -33,7 +33,7 @@ const REL_LABEL: Record<Relation, string> = {
   jockey: 'Nài (Jockey)',
   owner: 'Chủ ngựa',
   referee: 'Trọng tài',
-  spectator: 'Đặt cược',
+  spectator: 'Dự đoán',
   violation: 'Có vi phạm',
 };
 

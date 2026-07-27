@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { entriesApi, errorMessage, horsesApi, racesApi, type HorseDto, type RaceDto, type RaceEntryDto, type RaceStatus } from '../../lib/api';
+import {
+  adminPredictionsApi,
+  entriesApi,
+  errorMessage,
+  horsesApi,
+  predictionsApi,
+  racesApi,
+  type HorseDto,
+  type PendingBetsSummaryDto,
+  type RaceDto,
+  type RaceEntryDto,
+  type RaceForecastDto,
+  type RaceStatus,
+} from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 import { Alert, Badge, Button, Card, Field, Spinner } from '../../components/ui';
 
@@ -55,6 +68,19 @@ export default function RaceDetailPage() {
   const [changingStatus, setChangingStatus] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
 
+  // Cược chưa hoàn tiền của race đã Cancelled (bước hoàn tiền lỗi giữa chừng) - xem mục 14
+  // trong PREDICTION_BETTING_PLAN.md (Prediction service là service khác, tự query riêng).
+  const [pendingRefund, setPendingRefund] = useState<PendingBetsSummaryDto | null>(null);
+  const [refunding, setRefunding] = useState(false);
+
+  // Dự đoán AI (xác suất top-1 mỗi ngựa) - chức năng tách biệt với betting. Mọi role xem được;
+  // Admin tạo/cập nhật + thấy tỉ lệ cược gợi ý. Tên ngựa lấy từ race entries để map theo horseId.
+  const [forecast, setForecast] = useState<RaceForecastDto | null>(null);
+  const [horseNames, setHorseNames] = useState<Record<string, string>>({});
+  const [forecastLoading, setForecastLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [forecastMsg, setForecastMsg] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
+
   const isHorseOwner = user?.roles.includes('HorseOwner');
   const isRefereeOrAdmin = isAdmin || user?.roles.includes('RaceReferee');
 
@@ -72,6 +98,66 @@ export default function RaceDetailPage() {
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Race đã Cancelled (status 5) - kiểm tra còn cược Submitted chưa hoàn tiền không (vd bước
+  // refund lỗi lần trước). Không chặn trang nếu Prediction service tạm lỗi - chỉ bỏ qua banner.
+  const checkPendingRefund = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await adminPredictionsApi.getPendingBetsSummary(id);
+      const summary = res.data ?? null;
+      setPendingRefund(summary && summary.pendingCount > 0 ? summary : null);
+    } catch {
+      setPendingRefund(null);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (race?.status === 5) void checkPendingRefund();
+    else setPendingRefund(null);
+  }, [race?.status, checkPendingRefund]);
+
+  // Tải dự đoán AI + map tên ngựa (từ entries). Prediction service là service riêng - nếu chưa có
+  // forecast (404) hoặc service tạm lỗi thì chỉ ẩn phần này, không chặn trang.
+  const loadForecast = useCallback(async () => {
+    if (!id) return;
+    setForecastLoading(true);
+    try {
+      const [fRes, entries] = await Promise.all([
+        predictionsApi.getRaceForecast(id).catch(() => null),
+        entriesApi.list({ raceId: id, pageSize: 100 }).catch(() => null),
+      ]);
+      if (entries) {
+        const map: Record<string, string> = {};
+        for (const e of entries.items) map[e.horseId] = e.horseName ?? '';
+        setHorseNames(map);
+      }
+      setForecast(fRes?.success ? fRes.data : null);
+    } finally {
+      setForecastLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => { void loadForecast(); }, [loadForecast]);
+
+  const generateForecast = useCallback(async () => {
+    if (!id) return;
+    setGenerating(true);
+    setForecastMsg(null);
+    try {
+      const res = await adminPredictionsApi.generateRaceForecast(id, true);
+      if (res.success && res.data) {
+        setForecast(res.data);
+        setForecastMsg({ kind: 'success', text: 'Đã tạo dự đoán AI.' });
+      } else {
+        setForecastMsg({ kind: 'error', text: res.message ?? 'Tạo dự đoán AI thất bại.' });
+      }
+    } catch (err) {
+      setForecastMsg({ kind: 'error', text: errorMessage(err) });
+    } finally {
+      setGenerating(false);
+    }
+  }, [id]);
 
   const loadMyEntries = useCallback(async () => {
     if (!id || !user?.userId) { setMyEntries([]); return; }
@@ -101,6 +187,14 @@ export default function RaceDetailPage() {
 
   async function changeRaceStatus(status: RaceStatus, label: string) {
     if (!id) return;
+
+    // Hủy cuộc đua ảnh hưởng tới tiền cược bên Prediction service - xử lý riêng để hiện popup
+    // "sẽ hoàn X điểm cho Y người" trước khi xác nhận (mục 14, PREDICTION_BETTING_PLAN.md).
+    if (status === 'Cancelled') {
+      await handleCancelRace(label);
+      return;
+    }
+
     if (!window.confirm(`Đổi trạng thái cuộc đua thành "${label}"?`)) return;
     setChangingStatus(true);
     setStatusMsg(null);
@@ -112,6 +206,71 @@ export default function RaceDetailPage() {
       setStatusMsg({ kind: 'error', text: errorMessage(err) });
     } finally {
       setChangingStatus(false);
+    }
+  }
+
+  async function handleCancelRace(label: string) {
+    if (!id) return;
+
+    // Xem trước tác động hoàn tiền (không chặn hủy nếu Prediction service tạm lỗi - chỉ mất
+    // phần số liệu trong popup xác nhận).
+    let pending: PendingBetsSummaryDto | null = null;
+    try {
+      const res = await adminPredictionsApi.getPendingBetsSummary(id);
+      pending = res.data ?? null;
+    } catch {
+      pending = null;
+    }
+
+    const confirmMsg = pending && pending.pendingCount > 0
+      ? `Cuộc đua này có ${pending.pendingCount} lượt dự đoán, tổng ${pending.totalStake.toLocaleString()} điểm sẽ được HOÀN LẠI cho người dự đoán. Xác nhận hủy cuộc đua?`
+      : `Đổi trạng thái cuộc đua thành "${label}"?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setChangingStatus(true);
+    setStatusMsg(null);
+    try {
+      await racesApi.changeStatus(id, 'Cancelled');
+
+      if (pending && pending.pendingCount > 0) {
+        try {
+          await adminPredictionsApi.cancelRacePredictions(id);
+          setStatusMsg({
+            kind: 'success',
+            text: `Đã hủy cuộc đua và hoàn ${pending.totalStake.toLocaleString()} điểm cho ${pending.pendingCount} người dự đoán.`,
+          });
+        } catch (refundErr) {
+          // Race đã Cancelled thành công nhưng bước hoàn tiền lỗi - phân biệt rõ với lỗi đổi
+          // trạng thái để admin biết cần bấm "Hoàn tiền ngay" (banner bên dưới), không phải thử
+          // hủy race lại từ đầu.
+          setStatusMsg({
+            kind: 'error',
+            text: `Đã hủy cuộc đua nhưng HOÀN TIỀN THẤT BẠI: ${errorMessage(refundErr)}. Vui lòng dùng nút "Hoàn tiền ngay" bên dưới.`,
+          });
+        }
+      } else {
+        setStatusMsg({ kind: 'success', text: `Đã đổi trạng thái thành "${label}".` });
+      }
+      await load();
+    } catch (err) {
+      setStatusMsg({ kind: 'error', text: errorMessage(err) });
+    } finally {
+      setChangingStatus(false);
+    }
+  }
+
+  async function handleRetryRefund() {
+    if (!id) return;
+    setRefunding(true);
+    setStatusMsg(null);
+    try {
+      await adminPredictionsApi.cancelRacePredictions(id);
+      setStatusMsg({ kind: 'success', text: 'Đã hoàn tiền cho người dự đoán.' });
+      await checkPendingRefund();
+    } catch (err) {
+      setStatusMsg({ kind: 'error', text: errorMessage(err) });
+    } finally {
+      setRefunding(false);
     }
   }
 
@@ -178,6 +337,21 @@ export default function RaceDetailPage() {
         )}
         {isAdmin && statusMsg && (
           <div className="mt-3"><Alert kind={statusMsg.kind}>{statusMsg.text}</Alert></div>
+        )}
+        {isAdmin && pendingRefund && (
+          <div className="mt-3">
+            <Alert kind="error">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>
+                  Cuộc đua này đã hủy nhưng còn {pendingRefund.pendingCount} lượt dự đoán
+                  ({pendingRefund.totalStake.toLocaleString()} điểm) CHƯA ĐƯỢC HOÀN TIỀN.
+                </span>
+                <Button variant="danger" loading={refunding} onClick={handleRetryRefund}>
+                  Hoàn tiền ngay
+                </Button>
+              </div>
+            </Alert>
+          </div>
         )}
       </div>
 
@@ -295,6 +469,79 @@ export default function RaceDetailPage() {
           )}
         </Card>
       )}
+
+      {/* Dự đoán AI - xác suất top-1 mỗi ngựa. Xem: mọi role. Tạo + xem odds: Admin. */}
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-semibold">Dự đoán AI</h3>
+            {forecast && (
+              <Badge tone="flame">
+                {forecast.horses.length} ngựa · {new Date(forecast.generatedAtUtc).toLocaleString('vi-VN')}
+              </Badge>
+            )}
+          </div>
+          {isAdmin && (
+            <Button loading={generating} onClick={generateForecast}>
+              {forecast ? 'Tạo lại dự đoán' : 'Tạo dự đoán AI'}
+            </Button>
+          )}
+        </div>
+
+        {forecastMsg && <div className="mt-3"><Alert kind={forecastMsg.kind}>{forecastMsg.text}</Alert></div>}
+
+        {forecastLoading && !forecast ? (
+          <p className="mt-3 text-sm text-stone">Đang tải dự đoán AI…</p>
+        ) : forecast ? (
+          <div className="mt-4 overflow-hidden rounded-[var(--radius-input)] border border-parchment/60">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-cream/50 text-xs uppercase tracking-wide text-ash">
+                  <th className="px-4 py-2 text-left font-semibold">#</th>
+                  <th className="px-4 py-2 text-left font-semibold">Ngựa</th>
+                  <th className="px-4 py-2 text-left font-semibold">Xác suất thắng</th>
+                  {isAdmin && <th className="px-4 py-2 text-right font-semibold">Tỉ lệ gợi ý</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-parchment/40">
+                {[...forecast.horses]
+                  .sort((a, b) => b.winProbability - a.winProbability)
+                  .map((h, i) => (
+                    <tr key={h.horseId} className="align-top">
+                      <td className="px-4 py-2.5 text-ash">{i + 1}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium text-ink">{horseNames[h.horseId] || h.horseId.slice(0, 8)}</div>
+                        {h.reasoning && (
+                          <div className="mt-0.5 text-xs text-ash">{h.reasoning}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-24 overflow-hidden rounded-full bg-parchment/50">
+                            <div
+                              className="h-full rounded-full bg-flame"
+                              style={{ width: `${Math.round(h.winProbability * 100)}%` }}
+                            />
+                          </div>
+                          <span className="font-semibold text-ink">{(h.winProbability * 100).toFixed(1)}%</span>
+                        </div>
+                      </td>
+                      {isAdmin && (
+                        <td className="px-4 py-2.5 text-right font-medium text-ink">
+                          {h.suggestedOdds != null ? h.suggestedOdds.toFixed(2) : '—'}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-ash">
+            Chưa có dự đoán AI cho cuộc đua này.{isAdmin ? ' Bấm "Tạo dự đoán AI" để sinh.' : ''}
+          </p>
+        )}
+      </Card>
     </div>
   );
 }

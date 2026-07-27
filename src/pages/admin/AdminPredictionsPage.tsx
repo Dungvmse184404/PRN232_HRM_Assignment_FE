@@ -5,21 +5,28 @@ import {
   errorMessage,
   horsesApi,
   racesApi,
+  usersApi,
   type AdminPredictionDto,
   type PredictionConfigDto,
   type RaceDto,
   type RaceEntryDto,
   type RewardType,
+  type UserDto,
 } from '../../lib/api';
 import { Alert, Badge, Button, Card, Input, Spinner } from '../../components/ui';
 
 const REWARD_TYPES: RewardType[] = ['Points', 'Voucher', 'Cash'];
+const QUICK_ADJUST_AMOUNT = 1000;
 
 interface GradeResult {
   totalPredictions: number;
   correctCount: number;
   wrongCount: number;
+  refundedCount: number;
   rewardCreatedCount: number;
+  totalPool: number;
+  houseCut: number;
+  distributablePool: number;
 }
 
 export default function AdminPredictionsPage() {
@@ -29,7 +36,17 @@ export default function AdminPredictionsPage() {
   const [cfgRewardType, setCfgRewardType] = useState<RewardType>('Points');
   const [cfgRewardValue, setCfgRewardValue] = useState('');
   const [cfgDeadline, setCfgDeadline] = useState('');
+  const [cfgMinStake, setCfgMinStake] = useState('');
+  const [cfgMaxStake, setCfgMaxStake] = useState('');
+  const [cfgHouseCutPercent, setCfgHouseCutPercent] = useState('');
   const [cfgSaving, setCfgSaving] = useState(false);
+
+  // ---- Wallet adjust ("cộng điểm cho spectator") state ----
+  const [spectators, setSpectators] = useState<UserDto[]>([]);
+  const [adjustUserId, setAdjustUserId] = useState('');
+  const [adjustAmount, setAdjustAmount] = useState(String(QUICK_ADJUST_AMOUNT));
+  const [adjusting, setAdjusting] = useState(false);
+  const [adjustedBalance, setAdjustedBalance] = useState<number | null>(null);
 
   // ---- Grade form state ----
   const [gradeRaceId, setGradeRaceId] = useState('');
@@ -82,6 +99,12 @@ export default function AdminPredictionsPage() {
     try {
       const raceResult = await racesApi.list({ pageNumber: 1, pageSize: 100 });
       setRaces(raceResult.items);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+    try {
+      const userResult = await usersApi.list({ role: 'Spectator', pageNumber: 1, pageSize: 200 });
+      setSpectators(userResult.items);
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -142,6 +165,11 @@ export default function AdminPredictionsPage() {
         rewardType: cfgRewardType,
         rewardValue: cfgRewardValue ? Number(cfgRewardValue) : null,
         predictionDeadline: cfgDeadline || null,
+        minStake: cfgMinStake ? Number(cfgMinStake) : null,
+        maxStake: cfgMaxStake ? Number(cfgMaxStake) : null,
+        // Người dùng nhập % (vd 7 = 7%); backend nhận tỷ lệ 0..1 nên chia 100.
+        // Để trống = dùng mặc định server-side (7%, xem PREDICTION_BETTING_PLAN.md mục 11.2).
+        houseCutPercent: cfgHouseCutPercent ? Number(cfgHouseCutPercent) / 100 : null,
       });
       setSuccess('Tạo cấu hình thành công!');
       setCfgRaceId('');
@@ -149,11 +177,37 @@ export default function AdminPredictionsPage() {
       setCfgRewardType('Points');
       setCfgRewardValue('');
       setCfgDeadline('');
+      setCfgMinStake('');
+      setCfgMaxStake('');
+      setCfgHouseCutPercent('');
       await load();
     } catch (err) {
       setError(errorMessage(err));
     } finally {
       setCfgSaving(false);
+    }
+  }
+
+  // ---- Adjust spectator wallet ----
+  async function handleAdjustWallet(e: React.FormEvent) {
+    e.preventDefault();
+    const amount = Number(adjustAmount);
+    if (!adjustUserId || !amount) return;
+    setAdjusting(true);
+    setError(null);
+    setSuccess(null);
+    setAdjustedBalance(null);
+    try {
+      const result = await adminPredictionsApi.adjustWallet(adjustUserId, {
+        amount,
+        note: 'Admin cộng điểm thủ công (UI)',
+      });
+      setAdjustedBalance(result.data?.balance ?? null);
+      setSuccess('Đã cộng điểm cho spectator!');
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setAdjusting(false);
     }
   }
 
@@ -202,6 +256,7 @@ export default function AdminPredictionsPage() {
       case 'Correct': return 'green';
       case 'Wrong': return 'red';
       case 'Submitted': return 'flame';
+      case 'Refunded': return 'flame';
       default: return 'neutral';
     }
   };
@@ -278,6 +333,33 @@ export default function AdminPredictionsPage() {
                 onChange={(e) => setCfgDeadline(e.target.value)}
               />
             </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-ash">Min Stake (điểm)</span>
+              <Input
+                type="number"
+                value={cfgMinStake}
+                onChange={(e) => setCfgMinStake(e.target.value)}
+                placeholder="Không giới hạn"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-ash">Max Stake (điểm)</span>
+              <Input
+                type="number"
+                value={cfgMaxStake}
+                onChange={(e) => setCfgMaxStake(e.target.value)}
+                placeholder="Không giới hạn"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-ash">House Cut (%)</span>
+              <Input
+                type="number"
+                value={cfgHouseCutPercent}
+                onChange={(e) => setCfgHouseCutPercent(e.target.value)}
+                placeholder="Mặc định 7%"
+              />
+            </div>
           </div>
           <div className="pt-1">
             <Button type="submit" loading={cfgSaving}>
@@ -285,6 +367,45 @@ export default function AdminPredictionsPage() {
             </Button>
           </div>
         </form>
+      </Card>
+
+      {/* ======== A2. Cộng điểm cho spectator (FR-43) ======== */}
+      <Card className="p-5">
+        <h2 className="mb-4 text-lg font-semibold">Cộng điểm cho Spectator (Dev)</h2>
+        <form onSubmit={handleAdjustWallet} className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-1 flex-col gap-1.5">
+            <span className="text-xs font-medium text-ash">Spectator</span>
+            <select
+              value={adjustUserId}
+              onChange={(e) => setAdjustUserId(e.target.value)}
+              className={selectClass}
+            >
+              <option value="">-- Chọn spectator --</option>
+              {spectators.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.fullName} ({u.email})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-ash">Số điểm (âm = trừ)</span>
+            <Input
+              type="number"
+              value={adjustAmount}
+              onChange={(e) => setAdjustAmount(e.target.value)}
+              className="w-32"
+            />
+          </div>
+          <Button type="submit" loading={adjusting} disabled={!adjustUserId || !Number(adjustAmount)}>
+            {Number(adjustAmount) ? `Cộng ${Number(adjustAmount).toLocaleString()} điểm` : 'Cộng điểm'}
+          </Button>
+        </form>
+        {adjustedBalance != null && (
+          <p className="mt-3 text-sm text-stone">
+            Số dư mới của spectator: <span className="font-semibold text-ink">{adjustedBalance.toLocaleString()}</span> điểm
+          </p>
+        )}
       </Card>
 
       {/* ======== B. Configs table ======== */}
@@ -302,6 +423,8 @@ export default function AdminPredictionsPage() {
                   <th className="py-2 pr-4">Cuộc đua</th>
                   <th className="py-2 pr-4">Reward Type</th>
                   <th className="py-2 pr-4">Reward Value</th>
+                  <th className="py-2 pr-4">Stake Min/Max</th>
+                  <th className="py-2 pr-4">House Cut</th>
                   <th className="py-2 pr-4">Deadline</th>
                   <th className="py-2 pr-4">Trạng thái</th>
                   <th className="py-2">Action</th>
@@ -309,10 +432,14 @@ export default function AdminPredictionsPage() {
               </thead>
               <tbody>
                 {configs.map((c) => (
-                  <tr key={c.configId} className="border-b border-parchment/30">
+                  <tr key={c.id} className="border-b border-parchment/30">
                     <td className="py-2.5 pr-4">{races.find((r) => r.id === c.raceId)?.name ?? '-'}</td>
                     <td className="py-2.5 pr-4">{c.rewardType}</td>
                     <td className="py-2.5 pr-4">{c.rewardValue ?? '--'}</td>
+                    <td className="py-2.5 pr-4 text-xs">
+                      {c.minStake ?? '--'} / {c.maxStake ?? '--'}
+                    </td>
+                    <td className="py-2.5 pr-4 text-xs">{(c.houseCutPercent * 100).toFixed(0)}%</td>
                     <td className="py-2.5 pr-4 text-xs text-stone">
                       {c.predictionDeadline ? new Date(c.predictionDeadline).toLocaleString() : '--'}
                     </td>
@@ -323,11 +450,11 @@ export default function AdminPredictionsPage() {
                     </td>
                     <td className="py-2.5">
                       {c.isActive ? (
-                        <Button variant="danger" onClick={() => toggleConfig(c.configId, true)}>
+                        <Button variant="danger" onClick={() => toggleConfig(c.id, true)}>
                           Disable
                         </Button>
                       ) : (
-                        <Button variant="neutral" onClick={() => toggleConfig(c.configId, false)}>
+                        <Button variant="neutral" onClick={() => toggleConfig(c.id, false)}>
                           Enable
                         </Button>
                       )}
@@ -387,7 +514,7 @@ export default function AdminPredictionsPage() {
 
         {gradeResult && (
           <div className="mt-4 rounded-[var(--radius-input)] border border-parchment/60 bg-cream/40 p-4">
-            <h3 className="mb-2 text-sm font-semibold">Kết quả chấm điểm:</h3>
+            <h3 className="mb-2 text-sm font-semibold">Kết quả chấm điểm (parimutuel):</h3>
             <dl className="grid grid-cols-2 gap-y-1 text-sm sm:grid-cols-4">
               <dt className="text-ash">Total Predictions</dt>
               <dd className="font-medium text-ink">{gradeResult.totalPredictions}</dd>
@@ -395,6 +522,14 @@ export default function AdminPredictionsPage() {
               <dd className="font-medium text-green-700">{gradeResult.correctCount}</dd>
               <dt className="text-ash">Wrong</dt>
               <dd className="font-medium text-red-600">{gradeResult.wrongCount}</dd>
+              <dt className="text-ash">Refunded (no winner)</dt>
+              <dd className="font-medium text-ink">{gradeResult.refundedCount}</dd>
+              <dt className="text-ash">Total Pool</dt>
+              <dd className="font-medium text-ink">{gradeResult.totalPool.toLocaleString()}</dd>
+              <dt className="text-ash">House Cut</dt>
+              <dd className="font-medium text-ink">{gradeResult.houseCut.toLocaleString()}</dd>
+              <dt className="text-ash">Distributed to winners</dt>
+              <dd className="font-medium text-ink">{gradeResult.distributablePool.toLocaleString()}</dd>
               <dt className="text-ash">Rewards Created</dt>
               <dd className="font-medium text-ink">{gradeResult.rewardCreatedCount}</dd>
             </dl>
@@ -416,15 +551,19 @@ export default function AdminPredictionsPage() {
                 <tr className="border-b border-parchment/60 text-xs font-medium uppercase tracking-wider text-ash">
                   <th className="py-2 pr-4">Cuộc đua</th>
                   <th className="py-2 pr-4">Ngựa dự đoán</th>
+                  <th className="py-2 pr-4">Điểm dự đoán</th>
+                  <th className="py-2 pr-4">Nhận được</th>
                   <th className="py-2 pr-4">Trạng thái</th>
                   <th className="py-2">Created At</th>
                 </tr>
               </thead>
               <tbody>
                 {predictions.map((p) => (
-                  <tr key={p.predictionId} className="border-b border-parchment/30">
+                  <tr key={p.id} className="border-b border-parchment/30">
                     <td className="py-2.5 pr-4">{races.find((r) => r.id === p.raceId)?.name ?? '-'}</td>
                     <td className="py-2.5 pr-4">{horseNameMap[p.predictedWinnerHorseId] ?? '-'}</td>
+                    <td className="py-2.5 pr-4">{p.stakeAmount.toLocaleString()}</td>
+                    <td className="py-2.5 pr-4">{p.payoutAmount != null ? p.payoutAmount.toLocaleString() : '-'}</td>
                     <td className="py-2.5 pr-4">
                       <Badge tone={statusTone(p.status)}>{p.status}</Badge>
                     </td>

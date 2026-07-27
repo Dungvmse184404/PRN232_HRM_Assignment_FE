@@ -974,15 +974,20 @@ export const entriesApi = {
   },
 };
 
-// ---- Prediction service types & API (FR-33..36) ----
+// ---- Prediction service types & API (FR-33..43, betting/parimutuel) ----
 export type RewardType = 'Points' | 'Voucher' | 'Cash';
-export type PredictionStatus = 'Submitted' | 'Correct' | 'Wrong';
+export type PredictionStatus = 'Submitted' | 'Correct' | 'Wrong' | 'Refunded';
 export type RewardStatus = 'Pending' | 'Notified' | 'Paid';
+export type WalletTransactionType = 'InitialGrant' | 'BetPlaced' | 'BetWon' | 'BetRefunded' | 'AdminAdjustment';
 
 export interface MyPredictionDto {
-  predictionId: string;
+  // Lưu ý: backend serialize theo camelCase của tên property C# thực tế ("Id"), không phải
+  // "PredictionId" - sửa lại field name cho khớp (trước đây "predictionId" luôn undefined ở runtime).
+  id: string;
   raceId: string;
   predictedWinnerHorseId: string;
+  stakeAmount: number;
+  payoutAmount: number | null;
   status: PredictionStatus;
   createdAtUtc: string;
   lockedAtUtc: string | null;
@@ -990,7 +995,7 @@ export interface MyPredictionDto {
 }
 
 export interface PredictionRewardDto {
-  rewardId: string;
+  id: string;
   predictionId?: string;
   rewardType: RewardType;
   amount: number | null;
@@ -999,25 +1004,76 @@ export interface PredictionRewardDto {
 }
 
 export interface AdminPredictionDto {
-  predictionId: string;
+  id: string;
   raceId: string;
   spectatorUserId: string;
   predictedWinnerHorseId: string;
+  stakeAmount: number;
+  payoutAmount: number | null;
   status: PredictionStatus;
   createdAtUtc: string;
   lockedAtUtc: string | null;
 }
 
 export interface PredictionConfigDto {
-  configId: string;
+  id: string;
   raceId: string;
   rules: string | null;
   rewardType: RewardType;
   rewardValue: number | null;
   predictionDeadline: string | null;
+  minStake: number | null;
+  maxStake: number | null;
+  houseCutPercent: number;
   isActive: boolean;
   createdBy: string;
   createdAtUtc: string;
+}
+
+export interface WalletDto {
+  id: string;
+  spectatorUserId: string;
+  balance: number;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+}
+
+export interface WalletTransactionDto {
+  id: string;
+  type: WalletTransactionType;
+  amount: number;
+  balanceAfter: number;
+  relatedPredictionId: string | null;
+  note: string | null;
+  createdAtUtc: string;
+}
+
+// Tổng hợp cược đang chờ chấm/hoàn (Status==Submitted) của 1 race - dùng để hiện popup
+// "sẽ hoàn X tiền cho Y người" khi Admin hủy race (xem RaceDetailPage.tsx).
+export interface PendingBetsSummaryDto {
+  raceId: string;
+  pendingCount: number;
+  totalStake: number;
+}
+
+// ---- AI win-probability forecast (tách biệt hoàn toàn với betting) ----
+export interface RaceForecastHorseDto {
+  horseId: string;
+  winProbability: number; // 0..1, tổng = 1
+  reasoning: string | null;
+  suggestedOdds: number | null; // CHỈ có giá trị khi caller là Admin, role khác = null
+}
+
+export interface RaceForecastDto {
+  id: string;
+  raceId: string;
+  model: string;
+  promptVersion: string;
+  status: number;
+  statusName: string;
+  generatedAtUtc: string;
+  expiresAtUtc: string;
+  horses: RaceForecastHorseDto[];
 }
 
 const predictionClient = axios.create({ baseURL: '/api/predictions' });
@@ -1028,7 +1084,7 @@ predictionClient.interceptors.request.use((config) => {
 });
 
 export const predictionsApi = {
-  async submit(payload: { raceId: string; predictedWinnerHorseId: string }) {
+  async submit(payload: { raceId: string; predictedWinnerHorseId: string; stakeAmount: number }) {
     const res = await predictionClient.post<ApiResponse<unknown>>('', payload);
     return res.data;
   },
@@ -1044,12 +1100,26 @@ export const predictionsApi = {
     const res = await predictionClient.post<ApiResponse<unknown>>(`/me/rewards/${rewardId}/mark-notified`);
     return res.data;
   },
+  async getMyWallet() {
+    const res = await predictionClient.get<ApiResponse<WalletDto>>('/me/wallet');
+    return res.data;
+  },
+  async getMyWalletTransactions() {
+    const res = await predictionClient.get<ApiResponse<WalletTransactionDto[]>>('/me/wallet/transactions');
+    return res.data;
+  },
+  // Xem dự đoán AI cho 1 cuộc đua. Mọi role đã đăng nhập đều gọi được; suggestedOdds chỉ có với Admin.
+  async getRaceForecast(raceId: string) {
+    const res = await predictionClient.get<ApiResponse<RaceForecastDto>>(`/races/${raceId}/ai-forecast`);
+    return res.data;
+  },
 };
 
 export const adminPredictionsApi = {
   async createConfig(payload: {
     raceId: string; rules?: string | null; rewardType: RewardType;
     rewardValue?: number | null; predictionDeadline?: string | null;
+    minStake?: number | null; maxStake?: number | null; houseCutPercent?: number | null;
   }) {
     const res = await predictionClient.post<ApiResponse<unknown>>('/admin/configs', payload);
     return res.data;
@@ -1070,6 +1140,29 @@ export const adminPredictionsApi = {
   },
   async gradeRace(raceId: string, payload: { winningHorseId: string }) {
     const res = await predictionClient.post<unknown>(`/admin/races/${raceId}/grade`, payload);
+    return res.data;
+  },
+  async cancelRacePredictions(raceId: string) {
+    const res = await predictionClient.post<ApiResponse<unknown>>(`/admin/races/${raceId}/cancel-predictions`);
+    return res.data;
+  },
+  async adjustWallet(userId: string, payload: { amount: number; note?: string | null }) {
+    const res = await predictionClient.post<ApiResponse<WalletDto>>(`/admin/wallets/${userId}/adjust`, payload);
+    return res.data;
+  },
+  async getPendingBetsSummary(raceId: string) {
+    const res = await predictionClient.get<ApiResponse<PendingBetsSummaryDto>>(
+      `/admin/races/${raceId}/pending-bets-summary`,
+    );
+    return res.data;
+  },
+  // Admin tạo / cập nhật dự đoán AI. Dùng lại forecast còn hạn trừ khi forceRegenerate=true.
+  async generateRaceForecast(raceId: string, forceRegenerate = false) {
+    const res = await predictionClient.post<ApiResponse<RaceForecastDto>>(
+      `/admin/races/${raceId}/ai-forecast`,
+      null,
+      { params: { forceRegenerate } },
+    );
     return res.data;
   },
 };
